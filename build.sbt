@@ -27,7 +27,7 @@ scalacOptions ++= Seq(
   "-Wnumeric-widen",                   // Warn when numerics are widened.
   "-Woctal-literal",                   // Warn on obsolete octal syntax.
   //"-Wself-implicit",                   // Warn when an implicit resolves to an enclosing self-definition.
-  "-Wunused:_",                        // Enables every warning of unused members/definitions/etc
+  //"-Wunused:_",                        // Enables every warning of unused members/definitions/etc
   "-Wunused:patvars",                  // Warn if a variable bound in a pattern is unused.
   "-Wunused:params",                   // Enable -Wunused:explicits,implicits. Warn if an explicit/implicit parameter is unused.
   "-Wunused:linted",                   // -Xlint:unused <=> Enable -Wunused:imports,privates,locals,implicits.

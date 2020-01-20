@@ -4,6 +4,7 @@ import cats.effect.Sync
 import org.http4s.{Method, Request, Uri}
 import org.http4s.client.Client
 import org.http4s.Status.Successful
+import org.http4s.syntax.string._
 import pt.tecnico.dsi.keystone.auth.models.request.AuthTokenRequest
 import pt.tecnico.dsi.keystone.auth.models.response.AuthTokenResponse
 
@@ -15,7 +16,9 @@ class Tokens[F[_]: Sync](uri: Uri)(implicit client: Client[F]) {
 	def authenticate(authTokenRequest: AuthTokenRequest): F[AuthTokenResponse] = {
 		val postRequest = Request(method = Method.POST, uri = uri).withEntity(authTokenRequest)
 		client.fetch[AuthTokenResponse](postRequest) {
-			case Successful(response) => response.as[AuthTokenResponse]
+			case Successful(response) =>
+				response.headers.get("asdsa".ci)
+				response.as[AuthTokenResponse]
 		}
 	}
 
