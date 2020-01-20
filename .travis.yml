@@ -20,7 +20,9 @@ cache:
 
 before_script:
   # https://hub.docker.com/r/openio/openstack-keystone
-  #- docker run -e SKIP_SETCAP=true --cap-add IPC_LOCK -d --name=dev-vault -p 8200:8200 vault
+  # https://github.com/open-io/dockerfiles/blob/master/openstack-keystone/queens/keystone-v3.sh
+  - |
+    docker run -d -e IPADDR=0.0.0.0 -p 5000:5000 -p 35357:35357 --name=dev-keystone openio/openstack-keystone:queens
 
 script:
   - sbt compile
