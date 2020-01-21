@@ -7,18 +7,21 @@ import org.http4s.Status.Successful
 import org.http4s.syntax.string._
 import pt.tecnico.dsi.keystone.auth.models.request.AuthTokenRequest
 import pt.tecnico.dsi.keystone.auth.models.response.AuthTokenResponse
+import cats.syntax.functor._
 
 class Tokens[F[_]: Sync](uri: Uri)(implicit client: Client[F]) {
 
 	/**
 	 * Password authentication with unscoped authorization.
 	 */
-	def authenticate(authTokenRequest: AuthTokenRequest): F[AuthTokenResponse] = {
+	def authenticate(authTokenRequest: AuthTokenRequest): F[(AuthTokenResponse, String)] = {
 		val postRequest = Request(method = Method.POST, uri = uri).withEntity(authTokenRequest)
-		client.fetch[AuthTokenResponse](postRequest) {
+		client.fetch(postRequest) {
 			case Successful(response) =>
-				response.headers.get("asdsa".ci)
-				response.as[AuthTokenResponse]
+				val header = response.headers.get("X-Subject-Token".ci)
+				response
+					.as[AuthTokenResponse]
+					.map(authResponse => (authResponse, header.get.value))
 		}
 	}
 

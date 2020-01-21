@@ -6,6 +6,9 @@ import io.circe.derivation.{deriveEncoder, renaming}
 object Scope {
   implicit val encoder: Encoder[Scope] = deriveEncoder(renaming.snakeCase, None)
 }
-case class Scope()
+case class Scope(
+  system: Option[System],
+  domain: Option[Domain]
+)
 
 

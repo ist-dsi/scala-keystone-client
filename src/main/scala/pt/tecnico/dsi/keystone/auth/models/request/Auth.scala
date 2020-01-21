@@ -9,6 +9,9 @@ object Auth {
 	def apply(identity: Identity, scope: Scope): Auth = Auth(identity, Some(scope))
 }
 
-case class Auth(identity: Identity, scope: Option[Scope] = None)
+case class Auth(
+	identity: Identity,
+	scope: Option[Scope] = None
+)
 
 

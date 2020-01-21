@@ -7,4 +7,7 @@ object Domain {
 	implicit val encoder: Encoder[Domain] = deriveEncoder(renaming.snakeCase, None)
 }
 
-case class Domain(name: String)
+case class Domain(
+	name: Option[String],
+	id: Option[String]
+)

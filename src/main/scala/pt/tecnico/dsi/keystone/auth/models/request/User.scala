@@ -7,4 +7,9 @@ object User {
 	implicit val encoder: Encoder[User] = deriveEncoder[User](renaming.snakeCase, None)
 }
 
-case class User (name: String, domain: Domain, password: String)
+case class User (
+	id: Option[String],
+	name: String,
+	domain: Domain,
+	password: String
+)

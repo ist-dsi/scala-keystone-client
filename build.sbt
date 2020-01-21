@@ -28,10 +28,10 @@ scalacOptions ++= Seq(
   "-Woctal-literal",                   // Warn on obsolete octal syntax.
   //"-Wself-implicit",                   // Warn when an implicit resolves to an enclosing self-definition.
   //"-Wunused:_",                        // Enables every warning of unused members/definitions/etc
-  "-Wunused:patvars",                  // Warn if a variable bound in a pattern is unused.
-  "-Wunused:params",                   // Enable -Wunused:explicits,implicits. Warn if an explicit/implicit parameter is unused.
-  "-Wunused:linted",                   // -Xlint:unused <=> Enable -Wunused:imports,privates,locals,implicits.
-  "-Wvalue-discard",                   // Warn when non-Unit expression results are unused.
+  //"-Wunused:patvars",                  // Warn if a variable bound in a pattern is unused.
+  //"-Wunused:params",                   // Enable -Wunused:explicits,implicits. Warn if an explicit/implicit parameter is unused.
+  //"-Wunused:linted",                   // -Xlint:unused <=> Enable -Wunused:imports,privates,locals,implicits.
+  //"-Wvalue-discard",                   // Warn when non-Unit expression results are unused.
 )
 // These lines ensure that in sbt console or sbt test:console the -Ywarn* and the -Xfatal-warning are not bothersome.
 // https://stackoverflow.com/questions/26940253/in-sbt-how-do-you-override-scalacoptions-for-console-in-all-configurations

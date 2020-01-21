@@ -15,28 +15,31 @@ object Main extends IOApp {
 	implicit val httpClient: Client[IO] = JavaNetClientBuilder[IO](blocker).create
 
 	def run(args: List[String]): IO[ExitCode] = {
-		val keystoneClient = new KeystoneClient[IO](uri"http://localhost:5000")
 
 		val authTokenRequest = AuthTokenRequest(
 			Auth(
 				Identity(
 					List("password"),
-					request.Password(
+					Some(request.Password(
 						request.User(
+              id = None,
 							name = "admin",
 							Domain(
-								name = "Default"
+								name = Some("Default"),
+                id = None
 							),
 							password = "ADMIN_PASS"
 						)
-					)
+					))
 				)
 			)
 		)
 
-		val result = keystoneClient.auth.tokens.authenticate(authTokenRequest).unsafeRunSync()
-		println(result)
-
-		IO(ExitCode.Success)
+		for {
+			client <- KeystoneClient.create[IO](uri"http://localhost:5000", authTokenRequest)
+			_ <- IO { println(client.token) }
+			list <- client.domains.list
+			_ <- IO { println(list) }
+		} yield ExitCode.Success
 	}
 }
