@@ -13,7 +13,8 @@ case class Domain(
   enabled: Option[Boolean],
   id: Option[String],
   links: Option[Links],
-  name: Option[String]
+  name: Option[String],
+  tags: Option[Seq[String]]
 )
 
 

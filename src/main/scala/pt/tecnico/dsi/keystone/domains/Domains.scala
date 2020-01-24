@@ -3,7 +3,6 @@ package pt.tecnico.dsi.keystone.domains
 import cats.effect.Sync
 import org.http4s._
 import org.http4s.client.Client
-import org.http4s.Status.Successful
 import pt.tecnico.dsi.keystone.domains.models.{Domain, DomainWrapper, ListResponse}
 
 class Domains[F[_]: Sync](uri: Uri, token: String)(implicit client: Client[F]) { self =>
@@ -16,7 +15,7 @@ class Domains[F[_]: Sync](uri: Uri, token: String)(implicit client: Client[F]) {
     */
   def list : F[ListResponse] = {
     val request = self.request.withUri(uri).withMethod(Method.GET)
-    client.expect[ListResponse](request)
+    client.expect(request)
   }
 
   /**
@@ -24,7 +23,7 @@ class Domains[F[_]: Sync](uri: Uri, token: String)(implicit client: Client[F]) {
     */
   def show(domainId: String) : F[Domain] = {
     val request = self.request.withUri(uri / domainId).withMethod(Method.GET)
-    client.expect[Domain](request)
+    client.expect(request)
   }
 
   /**
@@ -32,7 +31,7 @@ class Domains[F[_]: Sync](uri: Uri, token: String)(implicit client: Client[F]) {
     */
   def delete(domainId: String): F[Unit] = {
     val request = self.request.withUri(uri / domainId).withMethod(Method.DELETE)
-    client.expect[Unit](request)
+    client.expect(request)
   }
 
   /**
@@ -40,9 +39,7 @@ class Domains[F[_]: Sync](uri: Uri, token: String)(implicit client: Client[F]) {
     */
   def create(domainWrapper: DomainWrapper): F[DomainWrapper] = {
     val request = self.request.withUri(uri).withMethod(Method.POST).withEntity(domainWrapper)
-    client.fetch(request) {
-      case Successful(response) => response.as[DomainWrapper]
-    }
+    client.expect(request)
   }
 
   /**
@@ -50,9 +47,7 @@ class Domains[F[_]: Sync](uri: Uri, token: String)(implicit client: Client[F]) {
     */
   def update(domainWrapper: DomainWrapper): F[DomainWrapper] = {
     val request = self.request.withUri(uri).withMethod(Method.PATCH).withEntity(domainWrapper)
-    client.fetch(request) {
-      case Successful(response) => response.as[DomainWrapper]
-    }
+    client.expect(request)
   }
 
 }

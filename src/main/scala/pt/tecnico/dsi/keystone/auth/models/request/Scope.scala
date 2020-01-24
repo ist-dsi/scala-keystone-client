@@ -8,7 +8,8 @@ object Scope {
 }
 case class Scope(
   system: Option[System],
-  domain: Option[Domain]
+  domain: Option[Domain],
+  project: Option[Project]
 )
 
 

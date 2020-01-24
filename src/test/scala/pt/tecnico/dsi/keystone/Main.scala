@@ -6,8 +6,6 @@ import cats.effect.Blocker
 import java.util.concurrent._
 
 import org.http4s.client.{Client, JavaNetClientBuilder}
-import pt.tecnico.dsi.keystone.auth.models.request
-import pt.tecnico.dsi.keystone.auth.models.request.{Auth, AuthTokenRequest, Domain, Identity }
 
 object Main extends IOApp {
 	val blockingPool: ExecutorService = Executors.newFixedThreadPool(5)
@@ -16,7 +14,7 @@ object Main extends IOApp {
 
 	def run(args: List[String]): IO[ExitCode] = {
 
-		val authTokenRequest = AuthTokenRequest(
+	/*	val authTokenRequest = AuthTokenRequest(
 			Auth(
 				Identity(
 					List("password"),
@@ -31,12 +29,28 @@ object Main extends IOApp {
 							password = "ADMIN_PASS"
 						)
 					))
+				),
+				scope = Some(request.Scope(
+						project = Some(request.Project(
+							domain = Some(Domain(id=Some("default"), name=None)),
+							id = None,
+							name = Some("admin")
+						)),
+					system = None,
+					domain = None
+					)
 				)
 			)
 		)
+*/
+
+		val clientBuilder = new ClientBuilder()
+  		.endpoint(uri"http://localhost:5000")
+  		.credentials("admin","ADMIN_PASS")
+  		.scopeToProject("default", "admin")
 
 		for {
-			client <- KeystoneClient.create[IO](uri"http://localhost:5000", authTokenRequest)
+			client <- clientBuilder.authenticate[IO]()
 			_ <- IO { println(client.token) }
 			list <- client.domains.list
 			_ <- IO { println(list) }
