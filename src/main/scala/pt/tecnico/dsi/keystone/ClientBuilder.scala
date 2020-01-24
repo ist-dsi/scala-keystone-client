@@ -13,6 +13,7 @@ class ClientBuilder {
   var password: String    = "ADMIN_PASS"
   var username: String    = "admin"
   var projectName: String = "admin"
+  var scoped: Boolean     = false
 
   def endpoint(uri: Uri): ClientBuilder = {
     authUrl = uri
@@ -28,6 +29,7 @@ class ClientBuilder {
   def scopeToProject(domainId: String, projectName: String): ClientBuilder = {
     this.domainId = domainId
     this.projectName = projectName
+    this.scoped = true
     this
   }
 
@@ -67,7 +69,7 @@ class ClientBuilder {
 
     val auth = Auth(
       identity,
-      Some(scope)
+      if (scoped) Some(scope) else None
     )
 
     val authTokenRequest = AuthTokenRequest(
