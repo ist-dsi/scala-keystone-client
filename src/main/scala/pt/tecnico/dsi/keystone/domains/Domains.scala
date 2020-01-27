@@ -8,6 +8,7 @@ import org.http4s.dsl.impl.Methods
 import pt.tecnico.dsi.keystone.domains.models.{Domain, DomainWrapper, ListResponse}
 
 class Domains[F[_]: Sync](uri: Uri, token: Header)(implicit client: Client[F]) {
+
   private val dsl = new Http4sClientDsl[F] with Methods {}
   import dsl._
 
@@ -19,20 +20,20 @@ class Domains[F[_]: Sync](uri: Uri, token: Header)(implicit client: Client[F]) {
   /**
     * Show domain details.
     */
-  def show(domainId: String) : F[Domain] = client.expect(GET.apply(uri / domainId))
+  def show(domainId: String) : F[Domain] = client.expect(GET(uri / domainId))
 
   /**
     * Deletes a certain domain.
     */
-  def delete(domainId: String): F[Unit] = client.expect(DELETE.apply(uri / domainId, token))
+  def delete(domainId: String): F[Unit] = client.expect(DELETE(uri / domainId, token))
 
   /**
     * Create a domain.
     */
-  def create(domainWrapper: DomainWrapper): F[DomainWrapper] = client.expect(POST.apply(domainWrapper, uri, token))
+  def create(domainWrapper: DomainWrapper): F[DomainWrapper] = client.expect(POST(domainWrapper, uri, token))
 
   /**
     * Update domain.
     */
-  def update(domainWrapper: DomainWrapper): F[DomainWrapper] = client.expect(PATCH.apply(domainWrapper, uri, token))
+  def update(domainWrapper: DomainWrapper): F[DomainWrapper] = client.expect(PATCH(domainWrapper, uri, token))
 }

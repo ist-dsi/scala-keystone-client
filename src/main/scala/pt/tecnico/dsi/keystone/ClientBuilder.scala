@@ -8,12 +8,12 @@ import pt.tecnico.dsi.keystone.auth.models.request._
 
 class ClientBuilder {
 
-  var authUrl: Uri        = uri"http://localhost:5000"
-  var domainId: String    = "default"
-  var password: String    = "ADMIN_PASS"
-  var username: String    = "admin"
-  var projectName: String = "admin"
-  var scoped: Boolean     = false
+  private var authUrl: Uri        = uri"http://localhost:5000"
+  private var domainId: String    = "default"
+  private var password: String    = "ADMIN_PASS"
+  private var username: String    = "admin"
+  private var projectName: String = "admin"
+  private var scoped: Boolean     = false
 
   def endpoint(uri: Uri): ClientBuilder = {
     authUrl = uri
@@ -57,7 +57,7 @@ class ClientBuilder {
 
     val project = Project(
       id = None,
-      name = Some("admin"),
+      name = Some(projectName),
       domain = Some(domain)
     )
 
