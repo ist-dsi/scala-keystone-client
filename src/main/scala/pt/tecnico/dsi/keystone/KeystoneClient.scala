@@ -15,14 +15,14 @@ object KeystoneClient {
 		* Create an authenticated `KeystoneClient`.
 		*/
 	def create[F[_]: Sync](baseUri: Uri, auth: AuthTokenRequest)(implicit client: Client[F]): F[KeystoneClient[F]] = {
-		val token = new Tokens[F](baseUri / "v3/auth/tokens")
+		val token = new Tokens[F](baseUri.withPath("/v3/auth/tokens"))
 		for {
 			(response, header) <- token.authenticate(auth)
-		} yield new KeystoneClient(baseUri, response.token, header)
+		} yield new KeystoneClient(baseUri, response.token,  Header("X-Auth-Token", header))
 	}
 }
 
-class KeystoneClient[F[_]: Sync](val baseUri: Uri, val authenticatedUser: Token, val token: String)(implicit client: Client[F]) { self =>
+class KeystoneClient[F[_]: Sync](val baseUri: Uri, val authenticatedUser: Token, val token: Header)(implicit client: Client[F]) { self =>
 
 	val uri: Uri = baseUri / "v3"
 	val domains = new Domains[F](uri / "domains", token)

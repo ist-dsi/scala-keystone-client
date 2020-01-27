@@ -11,6 +11,10 @@ import cats.syntax.functor._
 
 class Tokens[F[_]: Sync](uri: Uri)(implicit client: Client[F]) {
 
+	uri / "batata" // /v3/auth/tokens/batata
+	uri.withPath("batata") // /batata
+
+
 	/**
 	 * Password authentication with unscoped authorization.
 	 */
