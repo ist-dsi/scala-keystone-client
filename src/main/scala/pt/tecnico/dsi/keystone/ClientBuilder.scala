@@ -4,7 +4,7 @@ import org.http4s.implicits._
 import cats.effect.Sync
 import org.http4s.Uri
 import org.http4s.client.Client
-import pt.tecnico.dsi.keystone.auth.models.request._
+import pt.tecnico.dsi.keystone.models.auth.request.{Auth, AuthTokenRequest, Domain, Identity, Password, Project, Scope, User}
 
 class ClientBuilder {
 

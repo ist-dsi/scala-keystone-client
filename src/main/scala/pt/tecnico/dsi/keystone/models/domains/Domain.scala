@@ -1,7 +1,7 @@
-package pt.tecnico.dsi.keystone.domains.models
+package pt.tecnico.dsi.keystone.models.domains
 
-import io.circe.{Decoder, Encoder}
 import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
+import io.circe.{Decoder, Encoder}
 
 object Domain {
   implicit val decoder: Decoder[Domain] = deriveDecoder(renaming.snakeCase, false, None)
@@ -9,12 +9,12 @@ object Domain {
 }
 
 case class Domain(
-  description: Option[String],
-  enabled: Option[Boolean],
-  id: Option[String],
-  links: Option[Links],
-  name: Option[String],
-  tags: Option[Seq[String]]
+  description: String = null,
+  enabled: Boolean = true,
+  id: String = null,
+  links: Map[String, String] = Map.empty,
+  name: String = null,
+  tags: Seq[String] = Seq.empty
 )
 
 

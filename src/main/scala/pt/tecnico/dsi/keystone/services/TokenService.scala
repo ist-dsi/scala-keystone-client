@@ -1,17 +1,17 @@
-package pt.tecnico.dsi.keystone.auth
+package pt.tecnico.dsi.keystone.services
 
 import cats.effect.Sync
+import cats.syntax.functor._
+import org.http4s.Status.Successful
 import org.http4s.Uri
 import org.http4s.client.Client
-import org.http4s.Status.Successful
-import org.http4s.syntax.string._
-import pt.tecnico.dsi.keystone.auth.models.request.AuthTokenRequest
-import pt.tecnico.dsi.keystone.auth.models.response.AuthTokenResponse
-import cats.syntax.functor._
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.dsl.impl.Methods
+import org.http4s.syntax.string._
+import pt.tecnico.dsi.keystone.models.auth.request.AuthTokenRequest
+import pt.tecnico.dsi.keystone.models.auth.response.AuthTokenResponse
 
-class Tokens[F[_]: Sync](uri: Uri)(implicit client: Client[F]) {
+class TokenService[F[_]: Sync](uri: Uri)(implicit client: Client[F]) {
 
 	private val dsl = new Http4sClientDsl[F] with Methods {}
 	import dsl._

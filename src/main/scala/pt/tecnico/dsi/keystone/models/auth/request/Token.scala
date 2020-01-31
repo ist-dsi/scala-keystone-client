@@ -1,4 +1,4 @@
-package pt.tecnico.dsi.keystone.auth.models.request
+package pt.tecnico.dsi.keystone.models.auth.request
 
 import io.circe.Encoder
 import io.circe.derivation.{deriveEncoder, renaming}
