@@ -8,7 +8,10 @@ import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.dsl.impl.Methods
 import pt.tecnico.dsi.keystone.models.groups.{Group, GroupWrapper, Groups}
 
-class GroupService[F[_]: Sync](uri: Uri, token: Header)(implicit client: Client[F]) {
+import pt.tecnico.dsi.keystone.services.BaseService
+
+class GroupService[F[_]: Sync](uri: Uri, token: Header)
+                              (implicit client: Client[F]) extends BaseService {
 
   private val dsl = new Http4sClientDsl[F] with Methods {}
   import dsl._

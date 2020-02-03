@@ -11,7 +11,8 @@ import org.http4s.syntax.string._
 import pt.tecnico.dsi.keystone.models.auth.request.AuthTokenRequest
 import pt.tecnico.dsi.keystone.models.auth.response.AuthTokenResponse
 
-class TokenService[F[_]: Sync](uri: Uri)(implicit client: Client[F]) {
+class TokenService[F[_]: Sync](uri: Uri)
+															(implicit client: Client[F]) extends BaseService {
 
 	private val dsl = new Http4sClientDsl[F] with Methods {}
 	import dsl._

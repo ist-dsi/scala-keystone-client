@@ -8,7 +8,10 @@ import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.dsl.impl.Methods
 import pt.tecnico.dsi.keystone.models.domains.{Domain, DomainWrapper, Domains}
 
-class DomainService[F[_]: Sync](uri: Uri, token: Header)(implicit client: Client[F]) {
+import pt.tecnico.dsi.keystone.services.BaseService
+
+class DomainService[F[_]: Sync](uri: Uri, token: Header)
+                               (implicit client: Client[F]) extends BaseService {
 
   private val dsl = new Http4sClientDsl[F] with Methods {}
   import dsl._
@@ -92,7 +95,7 @@ class DomainService[F[_]: Sync](uri: Uri, token: Header)(implicit client: Client
     *
     * @return list of domains
     */
-  def list : F[Seq[Domain]] = {
+  def list(): F[Seq[Domain]] = {
     client.expect[Domains](
       GET(uri, token)
     ).map(_.domains)

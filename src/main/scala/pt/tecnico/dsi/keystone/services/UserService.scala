@@ -1,14 +1,20 @@
 package pt.tecnico.dsi.keystone.services
 
+import org.http4s._
 import cats.effect.Sync
 import cats.syntax.functor._
-import org.http4s._
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.dsl.impl.Methods
-import pt.tecnico.dsi.keystone.models.users.{User, UserWrapper, Users}
+import pt.tecnico.dsi.keystone.KeystoneClient
+import pt.tecnico.dsi.keystone.models.domains.Domain
+import pt.tecnico.dsi.keystone.models.groups.{Group, Groups}
+import pt.tecnico.dsi.keystone.models.users.{ChangePassword, User, UserWrapper, Users}
 
-class UserService[F[_]: Sync](uri: Uri, token: Header)(implicit client: Client[F]) {
+class UserService[F[_]: Sync](uri: Uri, keystoneClient: KeystoneClient[F])
+                             (implicit client: Client[F]) extends BaseService {
+
+  import keystoneClient._
 
   private val dsl = new Http4sClientDsl[F] with Methods {}
   import dsl._
@@ -83,12 +89,47 @@ class UserService[F[_]: Sync](uri: Uri, token: Header)(implicit client: Client[F
   }
 
   /**
+    * Lists groups for a specified user
+    *
+    * @param userId the user id
+    * @return list of groups for a user
+    */
+  def listUserGroups(userId: String): F[Seq[Group]] = {
+    client.expect[Groups](
+      GET(uri / userId / "groups")
+    ).map(_.groups)
+  }
+
+  /**
     * @return list of users
     */
   def list(): F[Seq[User]] = {
     client.expect[Users](
       GET(uri, token)
     ).map(_.users)
+  }
+
+  /**
+    * @param userId the user id
+    * @return the domain of the user
+    */
+  def getUserDomain(userId: String): F[Domain] = {
+    get(userId)
+      .map(user => user.domainId)
+      .fmap(domains.get)
+  }
+
+  /**
+    * @param userId           the user identifier
+    * @param originalPassword the original password
+    * @param password         the new password
+    */
+  def changePassword(userId: String, originalPassword: String, password: String): F[Unit] = {
+    client.expect(POST(
+      ChangePassword(originalPassword, password),
+      uri / userId / password,
+      token
+    ))
   }
 
 }
