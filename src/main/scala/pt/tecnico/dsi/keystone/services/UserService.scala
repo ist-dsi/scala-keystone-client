@@ -3,6 +3,7 @@ package pt.tecnico.dsi.keystone.services
 import org.http4s._
 import cats.effect.Sync
 import cats.syntax.functor._
+import cats.syntax.flatMap._
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.dsl.impl.Methods
@@ -114,9 +115,7 @@ class UserService[F[_]: Sync](uri: Uri, keystoneClient: KeystoneClient[F])
     * @return the domain of the user
     */
   def getUserDomain(userId: String): F[Domain] = {
-    get(userId)
-      .map(user => user.domainId)
-      .fmap(domains.get)
+    get(userId).flatMap(user => domains.get(user.domainId))
   }
 
   /**

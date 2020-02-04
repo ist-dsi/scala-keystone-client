@@ -18,7 +18,7 @@ abstract class CRUDService[F[_]: Sync, T: Codec]
   protected val dsl = new Http4sClientDsl[F] with Methods
   import dsl._
 
-  val plural = name + "s"
+  private val plural = name + "s"
 
   /**
     * Takes a request and returns all the values returned.
@@ -31,9 +31,6 @@ abstract class CRUDService[F[_]: Sync, T: Codec]
 
   /**
     * Takes a request and unwraps its return value.
-    *
-    * @param request
-    * @return
     */
   protected def withWrapper(request: F[Request[F]]): F[T] = {
     client.expect[Map[String, T]](request)
@@ -42,9 +39,6 @@ abstract class CRUDService[F[_]: Sync, T: Codec]
 
   /**
     * Puts a value inside a wrapper.
-    *
-    * @param value
-    * @return
     */
   protected def wrapBody(value: T): Map[String, T] = {
     Map(name -> value)

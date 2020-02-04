@@ -1,5 +1,6 @@
 package pt.tecnico.dsi.keystone.models.projects
 
+import pt.tecnico.dsi.keystone.codecConfiguration
 import io.circe.generic.extras.ConfiguredJsonCodec
 import pt.tecnico.dsi.keystone.models.domains.Domain
 
