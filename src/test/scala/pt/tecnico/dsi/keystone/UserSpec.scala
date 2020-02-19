@@ -23,24 +23,16 @@ class UserSpec extends Utils {
       } yield usernames should contain ("admin")
     }
 
-    /*
-    throws
-    [info] - should delete a user *** FAILED ***
-[info]   java.util.NoSuchElementException:
-[info]   at fs2.Stream$CompileOps.$anonfun$lastOrError$3(Stream.scala:4327)
-[info]   at scala.Option.fold(Option.scala:263)
-[info]   at fs2.Stream$CompileOps.$anonfun$lastOrError$2(Stream.scala:4327)
-[info]   at cats.effect.internals.IORunLoop$.cats$effect$internals$IORunLoop$$loop(IORunLoop.scala:139)
-
-idk why
-
+    /**
+     * TODO: Cannot figure out how to delete (this fails, always)
+     */
     "delete a user" in idempotently { client =>
       for {
         // Create user
-        user <- client.users.create(User("teste", domainId = "default"))
-        _ <- client.users.delete(user.id)
-      } yield true shouldBe true
+        user <- client.users.create(User("teste2", domainId = "default"))
+        _ <- client.users.delete(user.id) // TODO: This line breaks the test
+        usernames <- client.users.getByName("teste2").map(_.id).compile.toList
+      } yield assert(!usernames.contains(user.id))
     }
-     */
   }
 }

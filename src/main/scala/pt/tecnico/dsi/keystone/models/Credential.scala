@@ -14,8 +14,7 @@ object Credential {
     secret <- blob.hcursor.get[String]("secret")
     projectId <- c.get[String]("project_id")
     userId <- c.get[String]("user_id")
-    self <- c.downField("links").get[Option[Uri]]("self")
-  } yield Credential(access, secret, projectId, userId, self)
+  } yield Credential(access, secret, projectId, userId)
 
   implicit val encoder: Encoder[Credential] = (a: Credential) => Json.obj(
     "type" -> "ec2".asJson,
@@ -24,4 +23,4 @@ object Credential {
     "user_id" -> a.userId.asJson
   )
 }
-case class Credential(access: String, secret: String, projectId: String, userId: String, self: Option[Uri] = None)
+case class Credential(access: String, secret: String, projectId: String, userId: String)

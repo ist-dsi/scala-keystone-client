@@ -55,8 +55,8 @@ abstract class CRUDService[F[_], T: Encoder: Decoder]
   protected def deleteHandleConflict(id: String)(onConflict: F[Unit]): F[Unit] =
     client.fetch(DELETE(uri / id, subjectToken)) {
       case Successful(_) => F.pure(())
-      case _ => onConflict
-      //case response => F.raiseError(UnexpectedStatus(response.status))
+      case Conflict(_) => onConflict
+      case response => F.raiseError(UnexpectedStatus(response.status))
     }
 
   def get(id: String): F[WithId[T]] = unwrap(GET(uri / id, subjectToken))
