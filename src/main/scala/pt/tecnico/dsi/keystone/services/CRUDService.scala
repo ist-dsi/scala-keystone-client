@@ -52,12 +52,22 @@ abstract class CRUDService[F[_], T: Encoder: Decoder]
       case response => F.raiseError(UnexpectedStatus(response.status))
     }
 
+  protected def deleteHandleConflict(id: String)(onConflict: F[Unit]): F[Unit] =
+    client.fetch(DELETE(uri / id, subjectToken)) {
+      case Successful(_) => F.pure(())
+      case _ => onConflict
+      //case response => F.raiseError(UnexpectedStatus(response.status))
+    }
+
   def get(id: String): F[WithId[T]] = unwrap(GET(uri / id, subjectToken))
 
   def update(value: WithId[T]): F[WithId[T]] = update(value.id, value.model)
   def update(id: String, value: T): F[WithId[T]] = unwrap(PATCH(wrap(value), uri / id, subjectToken))
 
-  def delete(id: String): F[Unit] = client.expect(DELETE(uri / id, subjectToken))
+  def delete(id: String): F[Unit] = deleteHandleConflict(id) {
+    // Error means it was already deleted?
+    F.pure(())
+  }
 
   /*{
     "error" : {
