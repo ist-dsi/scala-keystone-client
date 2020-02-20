@@ -6,8 +6,8 @@ class CredentialSpec extends Utils {
   "The credential service" should {
     "list credentials" in idempotently { client =>
       for {
-        domains <- client.credentials.list().map(_.model.userId).compile.toList
-      } yield assert(domains.contains(client.session.user.id))
+        userIds <- client.credentials.list().map(_.userId).compile.toList
+      } yield userIds should contain (client.session.user.id)
     }
 
     /**
@@ -28,9 +28,9 @@ class CredentialSpec extends Utils {
 
     "get credentials" in idempotently { client =>
       for {
-        list <- client.credentials.list().compile.toList
-        credential <- client.credentials.get(list.last.id)
-      } yield credential.id shouldBe list.last.id
+        lastCredentialId <- client.credentials.list().compile.lastOrError.map(_.id)
+        credential <- client.credentials.get(lastCredentialId)
+      } yield credential.id shouldBe lastCredentialId
     }
   }
 }

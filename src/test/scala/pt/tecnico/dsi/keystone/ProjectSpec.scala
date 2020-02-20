@@ -1,6 +1,5 @@
 package pt.tecnico.dsi.keystone
 
-import cats.effect.IO
 import pt.tecnico.dsi.keystone.models.Project
 
 class ProjectSpec extends Utils {
@@ -18,14 +17,14 @@ class ProjectSpec extends Utils {
           description = "new project",
           domainId = "default",
         ))
-      } yield project.model.name shouldBe "project-test"
+      } yield project.name shouldBe "project-test"
     }
 
     "get projects" in idempotently { client =>
       for {
-        list <- client.projects.list().compile.toList
-        project <- client.projects.get(list.last.id)
-      } yield project.id shouldBe list.last.id
+        lastProjectId <- client.projects.list().compile.lastOrError.map(_.id)
+        project <- client.projects.get(lastProjectId)
+      } yield project.id shouldBe lastProjectId
     }
   }
 }

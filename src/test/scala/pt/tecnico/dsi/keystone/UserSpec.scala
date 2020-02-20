@@ -13,8 +13,8 @@ class UserSpec extends Utils {
     "create users" in idempotently { client =>
       for {
         user <- client.users.create(User("teste", domainId = "default"))
-        users <- client.users.getByName(user.name).map(_.model).compile.toList
-      } yield users should contain (user.model)
+        users <- client.users.getByName(user.name).compile.toList
+      } yield users should contain (user)
     }
 
     "get a user" in idempotently { client =>
@@ -23,16 +23,14 @@ class UserSpec extends Utils {
       } yield usernames should contain ("admin")
     }
 
-    /**
-     * TODO: Cannot figure out how to delete (this fails, always)
-     */
-    "delete a user" in idempotently { client =>
+    "delete a user" in {
       for {
-        // Create user
+        client <- scopedClient
         user <- client.users.create(User("teste2", domainId = "default"))
-        _ <- client.users.delete(user.id) // TODO: This line breaks the test
-        usernames <- client.users.getByName("teste2").map(_.id).compile.toList
-      } yield assert(!usernames.contains(user.id))
+        // This also tests deleting an unexisting user
+        _ <- client.users.delete(user.id).idempotently(_ shouldBe ())
+        usernames <- client.users.getByName(user.name).map(_.id).compile.toList
+      } yield usernames should not contain user.id
     }
   }
 }

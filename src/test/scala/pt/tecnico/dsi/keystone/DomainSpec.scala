@@ -6,8 +6,8 @@ class DomainSpec extends Utils {
   "The domain service" should {
     "list domains" in idempotently { client =>
       for {
-        domains <- client.projects.list().compile.toList
-      } yield assert(domains.nonEmpty)
+        domains <- client.domains.list().map(_.id).compile.toList
+      } yield domains should contain (client.session.user.domainId)
     }
 
     "create domains" in idempotently { client =>
@@ -17,7 +17,7 @@ class DomainSpec extends Utils {
           enabled = true,
           description = "Domain description"
         ))
-      } yield domain.model.name shouldBe "domain-test"
+      } yield domain.name shouldBe "domain-test"
     }
 
     "get domains" in idempotently { client =>

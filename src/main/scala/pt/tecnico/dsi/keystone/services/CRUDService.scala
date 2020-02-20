@@ -5,13 +5,12 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import fs2.{Chunk, Stream}
 import io.circe._
-import org.http4s.Status.Successful
+import org.http4s.{Header, Query, Request, Response, Uri}
+import org.http4s.Status.{Successful, NotFound, Conflict}
 import org.http4s.circe.decodeUri
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.dsl.impl.Methods
-import org.http4s.{Header, Query, Request, Response, Uri}
-import org.http4s.Status.Conflict
 import pt.tecnico.dsi.keystone.models.WithId
 
 abstract class CRUDService[F[_], T: Encoder: Decoder]
@@ -52,21 +51,14 @@ abstract class CRUDService[F[_], T: Encoder: Decoder]
       case response => F.raiseError(UnexpectedStatus(response.status))
     }
 
-  protected def deleteHandleConflict(id: String)(onConflict: F[Unit]): F[Unit] =
-    client.fetch(DELETE(uri / id, subjectToken)) {
-      case Successful(_) => F.pure(())
-      case Conflict(_) => onConflict
-      case response => F.raiseError(UnexpectedStatus(response.status))
-    }
-
   def get(id: String): F[WithId[T]] = unwrap(GET(uri / id, subjectToken))
 
   def update(value: WithId[T]): F[WithId[T]] = update(value.id, value.model)
   def update(id: String, value: T): F[WithId[T]] = unwrap(PATCH(wrap(value), uri / id, subjectToken))
 
-  def delete(id: String): F[Unit] = deleteHandleConflict(id) {
-    // Error means it was already deleted?
-    F.pure(())
+  def delete(id: String): F[Unit] = client.fetch(DELETE(uri / id, subjectToken)) {
+    case Successful(_) | NotFound(_) => F.pure(())
+    case response => F.raiseError(UnexpectedStatus(response.status))
   }
 
   /*{

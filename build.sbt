@@ -59,6 +59,7 @@ addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 Test / logBuffered := false
 Test / fork := true
 //coverageEnabled := true
+testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 
 // ======================================================================================================================
 // ==== Scaladoc ========================================================================================================
