@@ -56,6 +56,7 @@ abstract class CRUDService[F[_], T: Encoder: Decoder]
   def update(value: WithId[T]): F[WithId[T]] = update(value.id, value.model)
   def update(id: String, value: T): F[WithId[T]] = unwrap(PATCH(wrap(value), uri / id, subjectToken))
 
+  def delete(value: WithId[T]): F[Unit] = delete(value.id)
   def delete(id: String): F[Unit] = client.fetch(DELETE(uri / id, subjectToken)) {
     case Successful(_) | NotFound(_) => F.pure(())
     case response => F.raiseError(UnexpectedStatus(response.status))

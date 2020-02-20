@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.keystone.models
 
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.{Decoder, Encoder, HCursor}
 import io.circe.syntax._
 
 object WithId {

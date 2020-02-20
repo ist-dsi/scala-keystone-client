@@ -27,6 +27,9 @@ object User {
 
   def apply(name: String, domainId: String, defaultProjectId: Option[String], enabled: Boolean): User =
     new User(name, domainId, defaultProjectId, None, enabled)
+
+  /*private def apply(name: String, domainId: String, defaultProjectId: Option[String], passwordExpiresAt: Option[OffsetDateTime], enabled: Boolean): User =
+    new User(name, domainId, defaultProjectId, passwordExpiresAt, enabled)*/
 }
 
 case class User private[keystone] (
