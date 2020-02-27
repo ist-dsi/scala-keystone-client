@@ -21,13 +21,17 @@ class Domains[F[_]: Sync](baseUri: Uri, subjectToken: Header)(implicit client: C
     }
   }
 
-  override def delete(id: String): F[Unit] = {
-    for {
-      // We need to disable the domain before deleting it
-      // see https://docs.openstack.org/api-ref/identity/v3/?expanded=delete-domain-detail
-      domain <- get(id)
-      _ <- update(domain.id, domain.model.copy(enabled = false))
-    } yield super.delete(id)
+  def delete(id: String, force: Boolean = false): F[Unit] = {
+    if (force) {
+      for {
+        // We need to disable the domain before deleting it
+        // see https://docs.openstack.org/api-ref/identity/v3/?expanded=delete-domain-detail
+        domain <- get(id)
+        _ <- update(domain.id, domain.model.copy(enabled = false))
+      } yield super.delete(id)
+    } else {
+      super.delete(id)
+    }
   }
 
 }
