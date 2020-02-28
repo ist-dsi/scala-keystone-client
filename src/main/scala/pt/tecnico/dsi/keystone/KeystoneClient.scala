@@ -19,6 +19,7 @@ class KeystoneClient[F[_]: Sync](val baseUri: Uri, val session: Session, val sub
 	val credentials = new Credentials[F](uri, subjectToken)
 	val domains = new Domains[F](uri, subjectToken)
 	val users = new Users[F](uri, subjectToken)
+	val services = new Services[F](uri, subjectToken)
 	val groups = new Groups[F](uri, subjectToken)
 	val endpoints = new Endpoints[F](uri, subjectToken)
 	val regions = new Regions[F](uri, subjectToken)

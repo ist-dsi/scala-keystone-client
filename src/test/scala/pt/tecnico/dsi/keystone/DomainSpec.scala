@@ -38,5 +38,8 @@ class DomainSpec extends Utils {
         domains <- client.users.getByName(domain.name).map(_.id).compile.toList
       } yield domains should not contain domain.id
     }
+
+
+
   }
 }

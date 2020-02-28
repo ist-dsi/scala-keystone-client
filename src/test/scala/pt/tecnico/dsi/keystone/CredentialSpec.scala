@@ -4,6 +4,8 @@ import pt.tecnico.dsi.keystone.models.{Credential, User}
 
 class CredentialSpec extends Utils {
   "The credential service" should {
+
+
     "list credentials" in idempotently { client =>
       for {
         userIds <- client.credentials.list().map(_.userId).compile.toList
