@@ -1,17 +1,18 @@
 package pt.tecnico.dsi.keystone
 
-class ServiceSpec extends Utils {
-  "The service service" should {
-    "list services" in idempotently { client =>
-      fail()
-    }
+import cats.effect.IO
+import pt.tecnico.dsi.keystone.models.Service
 
-    "create services" in idempotently { client =>
-      fail()
-    }
+class ServiceSpec extends CRUDSpec[Service]("service", _.services, idempotent = false) {
+  def stub = IO.pure(Service(
+    name = "service",
+    description = "service-desc",
+    enabled = true,
+    `type` = "service-type"
+  ))
 
-    "get a service" in idempotently { client =>
-      fail()
-    }
-  }
+
+  override def changeField[R](stub: Service): Service = stub.copy(name = stub.name + "-updated")
+
+  override def withName(stub: Service)(newName: String => String): Service = stub.copy(name = newName(stub.name))
 }

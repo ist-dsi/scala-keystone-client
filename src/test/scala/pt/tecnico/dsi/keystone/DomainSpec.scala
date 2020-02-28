@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.keystone
 
-import pt.tecnico.dsi.keystone.models.Domain
+import pt.tecnico.dsi.keystone.models.{Domain, User}
 
 class DomainSpec extends Utils {
   "The domain service" should {
@@ -25,5 +25,21 @@ class DomainSpec extends Utils {
         domain <- client.domains.get(client.session.user.domainId)
       } yield domain.id shouldBe client.session.user.domainId
     }
+
+    "delete a domain" in {
+      for {
+        client <- scopedClient
+        domain <- client.domains.create(Domain(
+          name = "domain-test",
+          enabled = true,
+          description = "Domain description"
+        ))
+        _ <- client.domains.delete(domain.id).idempotently(_ shouldBe ())
+        domains <- client.users.getByName(domain.name).map(_.id).compile.toList
+      } yield domains should not contain domain.id
+    }
+
+
+
   }
 }

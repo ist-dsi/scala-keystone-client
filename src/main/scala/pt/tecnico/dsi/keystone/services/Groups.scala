@@ -3,8 +3,10 @@ package pt.tecnico.dsi.keystone.services
 import cats.effect.Sync
 import fs2.Stream
 import org.http4s._
+import cats.syntax.functor._
+import cats.syntax.flatMap._
 import org.http4s.client.Client
-import pt.tecnico.dsi.keystone.models.{Group, WithId}
+import pt.tecnico.dsi.keystone.models.{Group, User, WithId}
 
 class Groups[F[_]: Sync](baseUri: Uri, subjectToken: Header)(implicit client: Client[F])
   extends CRUDService[F, Group](baseUri, "group", subjectToken) {
@@ -22,4 +24,9 @@ class Groups[F[_]: Sync](baseUri: Uri, subjectToken: Header)(implicit client: Cl
     "name" -> name,
     "domain_id" -> domainId,
   ))
+
+  // Make group create idempotent
+  override def create(group: Group): F[WithId[Group]] = createHandleConflict(group) {
+    get(group.name, group.domainId).compile.lastOrError.flatMap(update)
+  }
 }

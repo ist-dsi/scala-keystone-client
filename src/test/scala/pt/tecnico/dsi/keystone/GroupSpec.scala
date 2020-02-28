@@ -1,17 +1,12 @@
 package pt.tecnico.dsi.keystone
 
-class GroupSpec extends Utils {
-  "The group service" should {
-    "list groups" in idempotently { client =>
-      fail()
-    }
+import cats.effect.IO
+import pt.tecnico.dsi.keystone.models.Group
 
-    "create groups" in idempotently { client =>
-      fail()
-    }
-
-    "get groups" in idempotently { client =>
-      fail()
-    }
-  }
+class GroupSpec extends CRUDSpec[Group]("group", _.groups) {
+  def stub = IO.pure(Group(
+    name = "test-group",
+    description = "test-desc",
+    domainId = "default"
+  ))
 }
