@@ -6,14 +6,17 @@ import io.circe.{Decoder, Encoder}
 object Project {
   implicit val decoder: Decoder[Project] = deriveDecoder(renaming.snakeCase, false, None)
   implicit val encoder: Encoder[Project] = deriveEncoder(renaming.snakeCase, None)
+
+  def apply(name: String, description: String, domainId: String,
+            isDomain: Boolean = false, enabled: Boolean = true): Project =
+    Project(name, description, domainId, isDomain, enabled, List.empty)
 }
 
-case class Project(
+case class Project private[keystone] (
   name: String,
   description: String,
   domainId: String,
-  parentId: Option[String] = None,
-  isDomain: Boolean = false,
-  enabled: Boolean = true,
-  tags: List[String] = List.empty
+  isDomain: Boolean,
+  enabled: Boolean,
+  tags: List[String]
 )

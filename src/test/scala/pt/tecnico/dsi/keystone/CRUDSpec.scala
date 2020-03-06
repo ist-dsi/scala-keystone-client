@@ -8,8 +8,6 @@ abstract class CRUDSpec[T]
 
   def stub: IO[T]
 
-  def changeField[R](stub: T): T
-
   s"The ${name} service" should {
 
     if (idempotent) {
@@ -33,8 +31,7 @@ abstract class CRUDSpec[T]
       for {
         client <- scopedClient
         expected <- stub
-        specificExpected = changeField(expected)(a => s"list $a")
-        obj <- service(client).create(specificExpected)
+        obj <- service(client).create(expected)
         isIdempotent <- service(client).list().compile.toList.idempotently(_ should contain (obj))
       } yield isIdempotent
     }
