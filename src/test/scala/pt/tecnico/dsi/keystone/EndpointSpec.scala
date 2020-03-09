@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.keystone
 
-import org.http4s.Uri
+import org.scalatest.BeforeAndAfterAll
 import pt.tecnico.dsi.keystone.models.{Endpoint, Interface, Region, Service}
 
 class EndpointSpec extends CRUDSpec[Endpoint]("endpoint", _.endpoints) {

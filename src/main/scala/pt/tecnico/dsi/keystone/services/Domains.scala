@@ -34,4 +34,6 @@ class Domains[F[_]: Sync](baseUri: Uri, subjectToken: Header)(implicit client: C
     }
   }
 
+  override def delete(id: String): F[Unit] = delete(id, true)
+
 }
