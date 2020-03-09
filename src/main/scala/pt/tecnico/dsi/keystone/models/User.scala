@@ -39,6 +39,9 @@ case class User private[keystone] (
   passwordExpiresAt: Option[OffsetDateTime] = None,
   enabled: Boolean = true,
   // TODO: handle the extra attributes
-) {
+) extends WithEnabled[User] {
+
+  override def withEnabled(enabled: Boolean): User = copy(enabled = enabled)
+
   def domain[F[_]](implicit client: KeystoneClient[F]): F[WithId[Domain]] = client.domains.get(domainId)
 }
