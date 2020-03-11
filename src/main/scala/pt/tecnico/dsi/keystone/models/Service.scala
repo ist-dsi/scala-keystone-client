@@ -61,4 +61,6 @@ case class Service private[keystone] (
   description: Option[String],
   enabled: Boolean,
 // links: Map[String, String] = Map.empty
-)
+) extends WithEnabled[Service] {
+  override def withEnabled(enabled: Boolean): Service = copy(enabled = enabled)
+}

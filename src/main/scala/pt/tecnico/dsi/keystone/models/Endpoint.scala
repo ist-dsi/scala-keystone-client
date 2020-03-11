@@ -28,4 +28,6 @@ case class Endpoint(
   url: String, // Cannot be Uri because some urls contain interpolations, eg: "http://0.0.0.0:6007/v1/AUTH_%(tenant_id)s"
   serviceId: String,
   enabled: Boolean = true,
-)
+) extends WithEnabled[Endpoint] {
+  override def withEnabled(enabled: Boolean): Endpoint = copy(enabled = enabled)
+}

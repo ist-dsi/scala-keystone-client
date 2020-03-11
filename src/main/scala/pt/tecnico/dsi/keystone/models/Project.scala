@@ -19,4 +19,6 @@ case class Project private[keystone] (
   isDomain: Boolean,
   enabled: Boolean,
   tags: List[String]
-)
+) extends WithEnabled[Project] {
+  override def withEnabled(enabled: Boolean): Project = copy(enabled = enabled)
+}

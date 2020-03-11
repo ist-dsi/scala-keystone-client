@@ -15,6 +15,7 @@ case class Domain(
   enabled: Boolean,
   description: String,
   tags: Seq[String]
-)
-
+) extends WithEnabled[Domain] {
+  override def withEnabled(enabled: Boolean): Domain = copy(enabled = enabled)
+}
 
