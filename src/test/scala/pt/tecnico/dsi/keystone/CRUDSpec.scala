@@ -1,10 +1,12 @@
 package pt.tecnico.dsi.keystone
 
 import cats.effect.IO
+import pt.tecnico.dsi.keystone.models.WithEnabled
 import pt.tecnico.dsi.keystone.services.CRUDService
 
 abstract class CRUDSpec[T]
-  (name: String, service: KeystoneClient[IO] => CRUDService[IO, T], idempotent: Boolean = true) extends Utils {
+  (name: String, service: KeystoneClient[IO] => CRUDService[IO, T], idempotent: Boolean = true)
+  (implicit ev: T <:< WithEnabled[T] = null) extends Utils {
 
   def stub: IO[T]
 
@@ -52,6 +54,36 @@ abstract class CRUDSpec[T]
         obj <- service(client).create(expected)
         result <- service(client).delete(obj.id).valueShouldIdempotentlyBe(())
       } yield result
+    }
+
+    if (ev != null) {
+      s"enable a ${name}" in {
+        for {
+          client <- scopedClient
+          expected <- stub
+          obj <- service(client).create(expected)
+          result <- {
+            for {
+              _ <- service(client).enable(obj.id)
+              get <- service(client).get(obj.id)
+            } yield get.model.enabled
+            }.valueShouldIdempotentlyBe(true)
+        } yield result
+      }
+
+      s"disable a ${name}" in {
+        for {
+          client <- scopedClient
+          expected <- stub
+          obj <- service(client).create(expected)
+          result <- {
+            for {
+              _ <- service(client).disable(obj.id)
+              get <- service(client).get(obj.id)
+            } yield get.model.enabled
+          }.valueShouldIdempotentlyBe(false)
+        } yield result
+      }
     }
 
   }

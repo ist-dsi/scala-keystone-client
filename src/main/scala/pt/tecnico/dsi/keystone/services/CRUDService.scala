@@ -6,12 +6,12 @@ import cats.syntax.functor._
 import fs2.{Chunk, Stream}
 import io.circe._
 import org.http4s.{Header, Query, Request, Response, Uri}
-import org.http4s.Status.{Successful, NotFound, Conflict}
+import org.http4s.Status.{Conflict, NotFound, Successful}
 import org.http4s.circe.decodeUri
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.dsl.impl.Methods
-import pt.tecnico.dsi.keystone.models.WithId
+import pt.tecnico.dsi.keystone.models.{WithEnabled, WithId}
 
 abstract class CRUDService[F[_], T: Encoder: Decoder]
   (baseUri: Uri, val name: String, subjectToken: Header)(implicit client: Client[F], F: Sync[F]) {
@@ -62,11 +62,17 @@ abstract class CRUDService[F[_], T: Encoder: Decoder]
     case response => F.raiseError(UnexpectedStatus(response.status))
   }
 
-  /*{
-    "error" : {
-      "message" : "Conflict occurred attempting to store user - Duplicate entry found with name teste at domain ID default.",
-      "code" : 409,
-      "title" : "Conflict"
-    }
-  }*/
+  def disable(id: String)(implicit ev: T <:< WithEnabled[T]): F[Unit] =
+    updateEnable(id, false)
+
+  def enable(id: String)(implicit ev: T <:< WithEnabled[T]): F[Unit] =
+    updateEnable(id, true)
+
+  private def updateEnable(id: String, value: Boolean)(implicit ev: T <:< WithEnabled[T]) : F[Unit] = {
+    for {
+      obj <- get(id)
+      _ <- update(obj.id, ev(obj.model).withEnabled(value))
+    } yield ()
+  }
+
 }
