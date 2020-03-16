@@ -1,12 +1,11 @@
 package pt.tecnico.dsi.keystone.services
 
 import cats.effect.Sync
+import cats.syntax.flatMap._
 import fs2.Stream
 import org.http4s._
-import cats.syntax.functor._
-import cats.syntax.flatMap._
 import org.http4s.client.Client
-import pt.tecnico.dsi.keystone.models.{Group, User, WithId}
+import pt.tecnico.dsi.keystone.models.{Group, WithId}
 
 class Groups[F[_]: Sync](baseUri: Uri, subjectToken: Header)(implicit client: Client[F])
   extends CRUDService[F, Group](baseUri, "group", subjectToken) {

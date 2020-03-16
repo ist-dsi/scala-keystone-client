@@ -4,7 +4,7 @@ import io.circe.Encoder
 import io.circe.derivation.{deriveEncoder, renaming}
 
 object Credential {
-  implicit val encoder: Encoder[Credential] = deriveEncoder[Credential](renaming.snakeCase, None)
+  implicit val encoder: Encoder.AsObject[Credential] = deriveEncoder[Credential](renaming.snakeCase, None)
 
   def apply(id: String, password: String): Credential = new Credential(Some(id), None, password, None)
   def apply(name: String, password: String, domain: Domain): Credential = new Credential(None, Some(name), password, Some(domain))

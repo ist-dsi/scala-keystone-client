@@ -26,12 +26,7 @@ scalacOptions ++= Seq(
   "-Wextra-implicit",                  // Warn when more than one implicit parameter section is defined.
   "-Wnumeric-widen",                   // Warn when numerics are widened.
   "-Woctal-literal",                   // Warn on obsolete octal syntax.
-  //"-Wself-implicit",                   // Warn when an implicit resolves to an enclosing self-definition.
   //"-Wunused:_",                        // Enables every warning of unused members/definitions/etc
-  //"-Wunused:patvars",                  // Warn if a variable bound in a pattern is unused.
-  //"-Wunused:params",                   // Enable -Wunused:explicits,implicits. Warn if an explicit/implicit parameter is unused.
-  //"-Wunused:linted",                   // -Xlint:unused <=> Enable -Wunused:imports,privates,locals,implicits.
-  //"-Wvalue-discard",                   // Warn when non-Unit expression results are unused.
 )
 // These lines ensure that in sbt console or sbt test:console the -Ywarn* and the -Xfatal-warning are not bothersome.
 // https://stackoverflow.com/questions/26940253/in-sbt-how-do-you-override-scalacoptions-for-console-in-all-configurations
@@ -46,13 +41,13 @@ fork := true
 // ==== Dependencies ====================================================================================================
 // ======================================================================================================================
 libraryDependencies ++= Seq("blaze-client", "dsl", "circe").map { module =>
-  "org.http4s"      %% s"http4s-$module" % "0.21.0-M6"
+  "org.http4s"      %% s"http4s-$module" % "0.21.1"
 } ++ Seq(
-  "io.circe"        %% "circe-derivation"  % "0.12.0-M7",
-  "io.circe"        %% "circe-generic-extras"  % "0.12.2",
-  "io.circe"        %% "circe-parser"  % "0.12.3",
-  "ch.qos.logback"  %  "logback-classic" % "1.2.3" % Test,
-  "org.scalatest"   %% "scalatest"       % "3.1.0" % Test,
+  "io.circe"        %% "circe-derivation"  % "0.13.0-M3",
+  "io.circe"        %% "circe-parser"      % "0.13.0",
+  "com.beachape"    %% "enumeratum-circe"  % "1.5.23",
+  "ch.qos.logback"  %  "logback-classic"   % "1.2.3" % Test,
+  "org.scalatest"   %% "scalatest"         % "3.1.1" % Test,
 )
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
@@ -111,7 +106,10 @@ sonatypeProfileName := organization.value
 licenses += "MIT" -> url("http://opensource.org/licenses/MIT")
 homepage := Some(url(s"https://github.com/ist-dsi/${name.value}"))
 scmInfo := Some(ScmInfo(homepage.value.get, git.remoteRepo.value))
-developers += Developer("Lasering", "Simão Martins", "", url("https://github.com/Lasering"))
+developers ++= List(
+  Developer("Lasering", "Simão Martins", "", url("https://github.com/Lasering")),
+  Developer("afonsomatos", "Afonso Matos", "", url("https://github.com/afonsomatos")),
+)
 
 // Will fail the build/release if updates for the dependencies are found
 //dependencyUpdatesFailBuild := true

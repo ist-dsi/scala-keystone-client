@@ -1,11 +1,10 @@
 package pt.tecnico.dsi.keystone.models.auth
 
-import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
-import io.circe.{Decoder, Encoder}
+import io.circe.Codec
+import io.circe.derivation.{deriveCodec, renaming}
 
 object Domain {
-  implicit val decoder: Decoder[Domain] = deriveDecoder(renaming.snakeCase, false, None)
-  implicit val encoder: Encoder[Domain] = deriveEncoder(renaming.snakeCase, None)
+  implicit val codec: Codec.AsObject[Domain] = deriveCodec(renaming.snakeCase, false, None)
 
   // Unfortunately these methods cannot be named apply
   def id(id: String): Domain = Domain(Some(id), None)

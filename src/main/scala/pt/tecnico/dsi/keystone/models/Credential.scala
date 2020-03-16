@@ -3,8 +3,6 @@ package pt.tecnico.dsi.keystone.models
 import io.circe.syntax._
 import io.circe.parser.decode
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json}
-import org.http4s.Uri
-import org.http4s.circe.decodeUri
 
 object Credential {
   implicit val decoder: Decoder[Credential] = (c: HCursor) => for {

@@ -2,11 +2,8 @@ package pt.tecnico.dsi.keystone.models
 
 import io.circe.derivation.{deriveDecoder, renaming}
 import io.circe.{Decoder, HCursor}
-import org.http4s.Uri
-import org.http4s.circe.decodeUri
 
 object CatalogEntry {
-  //TODO: find a way to not use the Url class
   private implicit val decoderUrl: Decoder[Url] = deriveDecoder(renaming.snakeCase, false, None)
   private case class Url(id: String, interface: Interface, regionId: String, url: String)
 
