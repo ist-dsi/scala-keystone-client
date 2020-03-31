@@ -9,6 +9,8 @@ jdk:
   - openjdk8
   - openjdk11
 
+sbt_args: --color=always
+
 before_cache:
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
