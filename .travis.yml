@@ -9,8 +9,6 @@ jdk:
   - openjdk8
   - openjdk11
 
-sbt_args: --color=always
-
 before_cache:
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
@@ -27,8 +25,8 @@ before_script:
     docker run -d -e IPADDR=0.0.0.0 -p 5000:5000 -p 35357:35357 --name=dev-keystone openio/openstack-keystone:queens
 
 script:
-  - sbt compile
-  - sbt coverage test
+  - sbt --color=always compile
+  - sbt --color=always coverage test
 
 #after_success:
 #  - sbt coverageReport codacyCoverage
