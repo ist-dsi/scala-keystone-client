@@ -10,13 +10,15 @@ jdk:
   - openjdk11
 
 before_cache:
-  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
-  - find $HOME/.sbt -name "*.lock" -delete
+  - rm -fv $HOME/.ivy2/.sbt.ivy.lock
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
+  - find $HOME/.sbt        -name "*.lock"               -print -delete
 
 cache:
   directories:
+    - $HOME/.cache/coursier
     - $HOME/.ivy2/cache
-    - $HOME/.sbt/boot/
+    - $HOME/.sbt
 
 before_script:
   # https://hub.docker.com/r/openio/openstack-keystone
@@ -25,8 +27,8 @@ before_script:
     docker run -d -e IPADDR=0.0.0.0 -p 5000:5000 -p 35357:35357 --name=dev-keystone openio/openstack-keystone:queens
 
 script:
-  - sbt --color=always compile
-  - sbt --color=always coverage test
+  - sbt -Dsbt.color=true compile
+  - sbt -Dsbt.color=true coverage test
 
 #after_success:
 #  - sbt coverageReport codacyCoverage
