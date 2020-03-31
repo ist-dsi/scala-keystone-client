@@ -8,21 +8,22 @@ import pt.tecnico.dsi.keystone.services._
 import pt.tecnico.dsi.keystone.services.Credentials
 
 object KeystoneClient {
-  def apply[F[_]: Client: Sync](baseUri: Uri): UnauthenticatedKeystoneClient[F] = new UnauthenticatedKeystoneClient(baseUri)
+	def apply[F[_]: Client: Sync](baseUri: Uri): UnauthenticatedKeystoneClient[F] = new UnauthenticatedKeystoneClient(baseUri)
 }
 
-class KeystoneClient[F[_]: Sync](val baseUri: Uri, val session: Session, val subjectToken: Header)
+class KeystoneClient[F[_]: Sync](val baseUri: Uri, val session: Session, val authToken: Header)
                                 (implicit client: Client[F]) {
 
 	val uri: Uri = baseUri / "v3"
 
-	val authentication = new Authentication[F](uri, subjectToken)
-	val credentials = new Credentials[F](uri, subjectToken)
-	val domains = new Domains[F](uri, subjectToken)
-	val users = new Users[F](uri, subjectToken)
-	val services = new Services[F](uri, subjectToken)
-	val groups = new Groups[F](uri, subjectToken)
-	val endpoints = new Endpoints[F](uri, subjectToken)
-	val regions = new Regions[F](uri, subjectToken)
-	val projects = new Projects[F](uri, subjectToken)
+	val authentication = new Authentication[F](uri, authToken)
+	val credentials = new Credentials[F](uri, authToken)
+	val domains = new Domains[F](uri, authToken)
+	val groups = new Groups[F](uri, authToken)
+	val projects = new Projects[F](uri, authToken)
+	val regions = new Regions[F](uri, authToken)
+	val roles = new Roles[F](uri, authToken)
+	val services = new Services[F](uri, authToken)
+	val endpoints = new Endpoints[F](uri, authToken)
+	val users = new Users[F](uri, authToken)
 }

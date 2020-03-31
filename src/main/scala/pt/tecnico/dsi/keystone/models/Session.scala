@@ -1,7 +1,6 @@
 package pt.tecnico.dsi.keystone.models
 
 import java.time.OffsetDateTime
-
 import io.circe.{Decoder, HCursor}
 import pt.tecnico.dsi.keystone.models.Scope.Unscoped
 

@@ -1,8 +1,8 @@
 package pt.tecnico.dsi.keystone.models
 
 import enumeratum.{Enum, EnumEntry}
-import io.circe._
 import io.circe.syntax._
+import io.circe.{Decoder, Encoder, HCursor, Json}
 
 sealed trait Scope extends EnumEntry
 case object Scope extends Enum[Scope] {

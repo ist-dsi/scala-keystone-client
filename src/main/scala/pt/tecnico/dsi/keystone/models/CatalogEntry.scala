@@ -8,11 +8,11 @@ object CatalogEntry {
   private case class Url(id: String, interface: Interface, regionId: String, url: String)
 
   implicit val decoder: Decoder[CatalogEntry] = (c: HCursor) => for {
-    tpe <- c.get[String]("type")
+    `type` <- c.get[String]("type")
     serviceId <- c.get[String]("id")
     name <- c.get[String]("name")
     urls <- c.get[List[Url]]("endpoints")
-  } yield CatalogEntry(tpe, serviceId, name, urls.map(url => WithId(url.id, Endpoint(url.interface, url.regionId, url.url, serviceId), None)))
+  } yield CatalogEntry(`type`, serviceId, name, urls.map(url => WithId(url.id, Endpoint(url.interface, url.regionId, url.url, serviceId), None)))
 }
 
 case class CatalogEntry(`type`: String, serviceId: String, serviceName: String, endpoints: List[WithId[Endpoint]]) {
