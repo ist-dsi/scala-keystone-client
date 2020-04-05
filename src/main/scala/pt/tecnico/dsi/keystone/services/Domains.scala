@@ -9,7 +9,8 @@ import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Domain, WithId}
 
 class Domains[F[_]: Sync](baseUri: Uri, authToken: Header)(implicit client: Client[F])
-  extends CRUDService[F, Domain](baseUri, "domain", authToken) {
+  extends CRUDService[F, Domain](baseUri, "domain", authToken)
+  with RoleAssignment[F] {
   import dsl._
 
   /**

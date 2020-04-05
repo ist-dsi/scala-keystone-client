@@ -5,7 +5,7 @@ import pt.tecnico.dsi.keystone.models.WithEnabled
 import pt.tecnico.dsi.keystone.services.CRUDService
 
 abstract class CRUDSpec[T]
-  (val name: String, service: KeystoneClient[IO] => CRUDService[IO, T], idempotent: Boolean = true)
+  (val name: String, val service: KeystoneClient[IO] => CRUDService[IO, T], idempotent: Boolean = true)
   (implicit ev: T <:< WithEnabled[T] = null) extends Utils {
 
   def stub: IO[T]
