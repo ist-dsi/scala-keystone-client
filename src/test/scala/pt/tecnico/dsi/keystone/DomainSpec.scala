@@ -10,12 +10,14 @@ class DomainSpec extends CRUDSpec[Domain]("domain", _.domains) with RoleAssignme
     enabled = false,
     description = "Domain description",
   ))
-  s"forcefully delete an enabled ${name}" in {
-    for {
-      client <- scopedClient
-      expected <- stub
-      obj <- client.domains.create(expected.copy(enabled = true))
-      result <- client.domains.delete(obj.id, force = true).valueShouldIdempotentlyBe(())
-    } yield result
+  s"The ${name} service" should {
+    s"forcefully delete an enabled ${name}" in {
+      for {
+        client <- scopedClient
+        expected <- stub
+        obj <- client.domains.create(expected.copy(enabled = true))
+        result <- client.domains.delete(obj.id, force = true).valueShouldIdempotentlyBe(())
+      } yield result
+    }
   }
 }
