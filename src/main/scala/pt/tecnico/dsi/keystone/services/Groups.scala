@@ -7,8 +7,8 @@ import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Group, User, WithId}
 
-class Groups[F[_]: Sync](baseUri: Uri, authToken: Header)(implicit client: Client[F])
-  extends CRUDService[F, Group](baseUri, "group", authToken) with UniqueWithinDomain[F, Group] {
+final class Groups[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, Group](baseUri, "group", authToken)
+  with UniqueWithinDomain[F, Group] {
   import dsl._
 
   /**
@@ -35,7 +35,7 @@ class Groups[F[_]: Sync](baseUri: Uri, authToken: Header)(implicit client: Clien
     */
   def listUsers(id: String, passwordExpiresAt: Option[String] = None): Stream[F, WithId[User]] = {
     val query = passwordExpiresAt.fold(Query.empty)(value => Query.fromPairs("password_expires_at" -> value))
-    genericListEndpoint[WithId[User]]("users", uri / id / "users", query)
+    genericList[WithId[User]]("users", uri / id / "users", query)
   }
 
   def addUser(id: String, userId: String): F[Unit] = client.expect(PUT(uri / id / "users" / userId))

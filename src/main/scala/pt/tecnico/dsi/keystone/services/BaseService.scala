@@ -5,17 +5,19 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import fs2.{Chunk, Stream}
 import io.circe.{Decoder, HCursor}
+import org.http4s.Status.{NotFound, Successful}
 import org.http4s.circe.decodeUri
-import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
+import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.dsl.impl.Methods
 import org.http4s.{Header, Query, Uri}
 
-abstract class GenericListEndpoint[F[_]](authToken: Header)(implicit client: Client[F], F: Sync[F]) {
+abstract class BaseService[F[_]](protected val authToken: Header)(implicit protected val client: Client[F], protected val F: Sync[F]) {
+  val uri: Uri
   protected val dsl = new Http4sClientDsl[F] with Methods
   import dsl._
 
-  def apply[R: Decoder](baseKey: String, uri: Uri, query: Query = Query.empty): Stream[F, R] = {
+  protected def genericList[R: Decoder](baseKey: String, uri: Uri, query: Query = Query.empty): Stream[F, R] = {
     implicit val paginatedDecoder: Decoder[(Option[Uri], List[R])] = (c: HCursor) => for {
       links <- c.downField("links").get[Option[Uri]]("next")
       objectList <- c.downField(baseKey).as[List[R]]
@@ -30,8 +32,10 @@ abstract class GenericListEndpoint[F[_]](authToken: Header)(implicit client: Cli
       case None => F.pure(None)
     }
   }
-}
 
-object ListEndpoint {
-  def apply[F[_]: Sync](authToken: Header)(implicit client: Client[F]): GenericListEndpoint[F] = new GenericListEndpoint[F](authToken) {}
+  protected def genericDelete(uri: Uri): F[Unit] =
+    client.fetch(DELETE(uri, authToken)) {
+      case Successful(_) | NotFound(_) => F.pure(())
+      case response => F.raiseError(UnexpectedStatus(response.status))
+    }
 }

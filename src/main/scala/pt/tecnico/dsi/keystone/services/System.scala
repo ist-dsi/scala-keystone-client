@@ -4,9 +4,8 @@ import cats.effect.Sync
 import org.http4s.{Header, Uri}
 import org.http4s.client.Client
 
-class System[F[_]: Sync](baseUri: Uri, authToken: Header)(implicit client: Client[F]) {
-  val users: SingletonRoleAssignmentService[F] = SingletonRoleAssignmentService(
-    new GenericRoleAssignmentService(baseUri / "system", "users", authToken))
-  val groups: SingletonRoleAssignmentService[F] = SingletonRoleAssignmentService(
-    new GenericRoleAssignmentService(baseUri / "system", "groups", authToken))
+final class System[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends BaseService[F](authToken)
+  with RoleAssignment[F] {
+
+  override val uri: Uri = baseUri / "system"
 }

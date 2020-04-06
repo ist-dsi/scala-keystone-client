@@ -8,8 +8,9 @@ import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Group, Project, User, WithId}
 
-class Users[F[_]: Sync](baseUri: Uri, authToken: Header)(implicit client: Client[F])
-  extends CRUDService[F, User](baseUri, "user", authToken) with UniqueWithinDomain[F, User] {
+final class Users[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, User](baseUri, "user", authToken)
+  with UniqueWithinDomain[F, User] {
+
   import dsl._
 
   /**
@@ -41,7 +42,7 @@ class Users[F[_]: Sync](baseUri: Uri, authToken: Header)(implicit client: Client
     * @param id the user id
     * @return list of groups for a user
     */
-  def listGroups(id: String): Stream[F, Group] = genericListEndpoint[Group]("groups", uri / id / "groups")
+  def listGroups(id: String): Stream[F, Group] = genericList[Group]("groups", uri / id / "groups")
 
   /**
     * Lists groups for a specified user
@@ -49,7 +50,7 @@ class Users[F[_]: Sync](baseUri: Uri, authToken: Header)(implicit client: Client
     * @param id the user id
     * @return list of groups for a user
     */
-  def listProjects(id: String): Stream[F, Project] = genericListEndpoint[Project]("projects", uri / id / "projects")
+  def listProjects(id: String): Stream[F, Project] = genericList[Project]("projects", uri / id / "projects")
 
   /**
     * @param id           the user identifier

@@ -7,8 +7,7 @@ import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Credential, WithId}
 
-class Credentials[F[_]: Sync](baseUri: Uri, authToken: Header)(implicit client: Client[F])
-  extends CRUDService[F, Credential](baseUri, "credential", authToken) {
+final class Credentials[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, Credential](baseUri, "credential", authToken) {
 
   /**
     * @param userId filters the response by a user ID.
