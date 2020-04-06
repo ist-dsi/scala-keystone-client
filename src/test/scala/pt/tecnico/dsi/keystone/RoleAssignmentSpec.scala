@@ -2,13 +2,13 @@ package pt.tecnico.dsi.keystone
 
 import cats.effect.IO
 import pt.tecnico.dsi.keystone.models.{Group, Role, User}
-import pt.tecnico.dsi.keystone.services.{CRUDService, GenericRoleAssignmentService, RoleAssignment}
+import pt.tecnico.dsi.keystone.services.{CRUDService, RoleAssignmentService, RoleAssignment}
 
 trait RoleAssignmentSpec[F] {
   this: CRUDSpec[F] =>
 
   def roleService: KeystoneClient[IO] => RoleAssignment[IO]
-  def test[T](stubIO: IO[T], crud: CRUDService[IO, T], roleAssignmentService: GenericRoleAssignmentService[IO]): Unit = {
+  def test[T](stubIO: IO[T], crud: CRUDService[IO, T], roleAssignmentService: RoleAssignmentService[IO]): Unit = {
       s"list roles for a ${crud.name} in a ${name}" in {
         for {
           client <- scopedClient
