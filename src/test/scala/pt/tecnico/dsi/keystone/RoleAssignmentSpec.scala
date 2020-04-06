@@ -4,79 +4,60 @@ import cats.effect.IO
 import pt.tecnico.dsi.keystone.models.{Group, Role, User}
 import pt.tecnico.dsi.keystone.services.{CRUDService, RoleAssignmentService, RoleAssignment}
 
-trait RoleAssignmentSpec[F] {
-  this: CRUDSpec[F] =>
+trait RoleAssignmentSpec[T] { this: CRUDSpec[T] =>
 
   def roleService: KeystoneClient[IO] => RoleAssignment[IO]
-  def test[T](stubIO: IO[T], crud: CRUDService[IO, T], roleAssignmentService: RoleAssignmentService[IO]): Unit = {
-      s"list roles for a ${crud.name} in a ${name}" in {
-        for {
-          client <- scopedClient
-          obj <- stub
-          stub <- stubIO
-          objWithId <- service(client).create(obj)
-          stubWithId <- crud.create(stub)
-          isIdempotent <- roleAssignmentService.list(objWithId.id, stubWithId.id).compile.toList.map(_.length).valueShouldIdempotentlyBe(0)
-        } yield isIdempotent
-      }
 
-      s"check ${crud.name} role assignment" in {
-        for {
-          client <- scopedClient
-          obj <- stub
-          role <- roleStub
-          stub <- stubIO
-          roleWithId <- client.roles.create(role)
-          objWithId <- service(client).create(obj)
-          stubWithId <- crud.create(stub)
-          isIdempotent <- roleAssignmentService.check(objWithId.id, stubWithId.id, roleWithId.id).valueShouldIdempotentlyBe(false)
-        } yield isIdempotent
-      }
+  def test[R](assignToStub: R, assignToCrud: CRUDService[IO, R], roleAssignmentService: RoleAssignmentService[IO]): Unit = {
+    def createStubs: IO[(String, String, String)] = for {
+      client <- scopedClient
+      objStub <- stub
+      obj <- service(client).create(objStub)
+      stub <- assignToCrud.create(assignToStub)
+      role <- client.roles.create(roleStub)
+    } yield (obj.id, stub.id, role.id)
 
-      s"assign role to a ${crud.name}" in {
-        for {
-          client <- scopedClient
-          obj <- stub
-          role <- roleStub
-          stub <- stubIO
-          roleWithId <- client.roles.create(role)
-          objWithId <- service(client).create(obj)
-          stubWithId <- crud.create(stub)
-          isIdempotent <- roleAssignmentService.assign(objWithId.id, stubWithId.id, roleWithId.id).valueShouldIdempotentlyBe(())
-        } yield isIdempotent
+    s"list roles for a ${assignToCrud.name} in a ${name}" in {
+      createStubs.flatMap { case (objId, stubId, _) =>
+        roleAssignmentService.list(objId, stubId).compile.toList.map(_.length).valueShouldIdempotentlyBe(0)
       }
+    }
 
-      s"delete ${crud.name} role assignment" in {
-        for {
-          client <- scopedClient
-          obj <- stub
-          role <- roleStub
-          stub <- stubIO
-          roleWithId <- client.roles.create(role)
-          objWithId <- service(client).create(obj)
-          stubWithId <- crud.create(stub)
-          isIdempotent <- roleService(client).roles.groups.delete(objWithId.id, stubWithId.id, roleWithId.id).valueShouldIdempotentlyBe(())
-        } yield isIdempotent
+    s"check ${assignToCrud.name} role assignment" in {
+      createStubs.flatMap { case (objId, stubId, roleId) =>
+        roleAssignmentService.check(objId, stubId, roleId).valueShouldIdempotentlyBe(false)
       }
+    }
 
+    s"assign role to a ${assignToCrud.name}" in {
+      createStubs.flatMap { case (objId, stubId, roleId) =>
+        roleAssignmentService.assign(objId, stubId, roleId).valueShouldIdempotentlyBe(())
+      }
+    }
+
+    s"delete ${assignToCrud.name} role assignment" in {
+      createStubs.flatMap { case (objId, stubId, roleId) =>
+        roleAssignmentService.delete(objId, stubId, roleId).valueShouldIdempotentlyBe(())
+      }
+    }
   }
 
-  def groupStub = IO.pure(Group(
+  def groupStub = Group(
     name = "test-group",
     description = "test-desc",
     domainId = "default"
-  ))
+  )
 
-  def userStub = IO.pure(User(
+  def userStub = User(
     name = "test-user",
     domainId = "default"
-  ))
+  )
 
-  def roleStub = IO.pure(Role(
+  def roleStub = Role(
     name = "test-role2",
     description = Some("some-description"),
     domainId = None, // We cannot use Some(domainId) because listing roles by default does not list roles from all domains
-  ))
+  )
 
   s"The ${name} service should handle role assignment" should {
     scopedClient.map { client =>
