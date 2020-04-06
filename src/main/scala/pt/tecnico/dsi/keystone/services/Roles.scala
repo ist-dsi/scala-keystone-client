@@ -7,8 +7,8 @@ import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Role, WithId}
 
-class Roles[F[_]: Sync](baseUri: Uri, authToken: Header)(implicit client: Client[F])
-  extends CRUDService[F, Role](baseUri, "role", authToken) with UniqueWithinDomain[F, Role] {
+final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, Role](baseUri, "role", authToken)
+  with UniqueWithinDomain[F, Role] {
 
   /**
     * @param name filters the response by a role name.

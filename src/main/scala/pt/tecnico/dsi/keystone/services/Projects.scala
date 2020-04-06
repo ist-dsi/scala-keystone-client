@@ -7,8 +7,8 @@ import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Project, WithId}
 
-class Projects[F[_]: Sync](baseUri: Uri, authToken: Header)(implicit client: Client[F])
-  extends CRUDService[F, Project](baseUri, "project", authToken) with UniqueWithinDomain[F, Project]
+final class Projects[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, Project](baseUri, "project", authToken)
+  with UniqueWithinDomain[F, Project]
   with RoleAssignment[F] {
 
   /**

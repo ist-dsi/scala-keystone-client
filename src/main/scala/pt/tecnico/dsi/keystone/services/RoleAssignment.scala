@@ -3,36 +3,22 @@ package pt.tecnico.dsi.keystone.services
 import cats.effect.Sync
 import fs2.Stream
 import org.http4s.Status.{NotFound, Successful}
-import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.client.{Client, UnexpectedStatus}
-import org.http4s.dsl.impl.Methods
 import org.http4s.{Header, Uri}
 import pt.tecnico.dsi.keystone.models.{Role, WithId}
 
-trait RoleAssignment[F[_]] { this: CRUDService[F, _] =>
+trait RoleAssignment[F[_]] { this: BaseService[F] =>
   object roles {
-    val users = new GenericRoleAssignmentService(uri, "users", authToken)
-    val groups = new GenericRoleAssignmentService(uri, "groups", authToken)
+    val users = new RoleAssignmentService(uri, "users", authToken)
+    val groups = new RoleAssignmentService(uri, "groups", authToken)
   }
 }
 
-case class SingletonRoleAssignmentService[F[_]](generic: GenericRoleAssignmentService[F]) {
-  def list(targetId: String) = generic.list("", targetId)
-  def assign(targetId: String, roleId: String) =  generic.assign("", targetId, roleId)
-  def check(targetId: String, roleId: String) =  generic.check("", targetId, roleId)
-  def delete(targetId: String, roleId: String)= generic.delete("", targetId, roleId)
-}
-
-class GenericRoleAssignmentService[F[_]]
-  (uri: Uri, target: String, authToken: Header)
-  (implicit client: Client[F], F: Sync[F]) {
-
-  val genericListEndpoint: GenericListEndpoint[F] = ListEndpoint[F](authToken)
-  val dsl = new Http4sClientDsl[F] with Methods
+class RoleAssignmentService[F[_]: Sync: Client](val uri: Uri, target: String, authToken: Header) extends BaseService[F](authToken) {
   import dsl._
 
   def list(id: String, targetId: String): Stream[F, WithId[Role]] =
-    genericListEndpoint[WithId[Role]]("roles", uri / id / target / targetId / "roles")
+    genericList[WithId[Role]]("roles", uri / id / target / targetId / "roles")
 
   def assign(id: String, targetId: String, roleId: String): F[Unit] =
     client.fetch(PUT(uri / id / target / targetId / "roles" / roleId, authToken)) {
@@ -47,9 +33,6 @@ class GenericRoleAssignmentService[F[_]]
       case response => F.raiseError(UnexpectedStatus(response.status))
     }
 
-  def delete(id: String, groupId: String, roleId: String): F[Unit] =
-    client.fetch(DELETE(uri / id / target / groupId / "roles" / roleId, authToken)) {
-      case Successful(_) | NotFound(_) => F.pure(())
-      case response => F.raiseError(UnexpectedStatus(response.status))
-    }
+  def delete(id: String, targetId: String, roleId: String): F[Unit] =
+    genericDelete(uri / id / target / targetId / "roles" / roleId)
 }
