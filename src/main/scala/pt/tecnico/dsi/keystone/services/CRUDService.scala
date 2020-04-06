@@ -13,7 +13,7 @@ import org.http4s.{Header, Query, Request, Response, Uri}
 import pt.tecnico.dsi.keystone.models.{WithEnabled, WithId}
 
 abstract class CRUDService[F[_], T: Codec](val baseUri: Uri, val name: String, val authToken: Header)
-                                          (implicit client: Client[F], protected val F: Sync[F]) {
+                                          (implicit val client: Client[F], protected val F: Sync[F]) {
   protected val dsl = new Http4sClientDsl[F] with Methods
   import dsl._
 

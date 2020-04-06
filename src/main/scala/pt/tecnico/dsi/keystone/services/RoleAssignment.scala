@@ -16,6 +16,13 @@ trait RoleAssignment[F[_]] { this: CRUDService[F, _] =>
   }
 }
 
+case class SingletonRoleAssignmentService[F[_]](generic: GenericRoleAssignmentService[F]) {
+  def list(targetId: String) = generic.list("", targetId)
+  def assign(targetId: String, roleId: String) =  generic.assign("", targetId, roleId)
+  def check(targetId: String, roleId: String) =  generic.check("", targetId, roleId)
+  def delete(targetId: String, roleId: String)= generic.delete("", targetId, roleId)
+}
+
 class GenericRoleAssignmentService[F[_]]
   (uri: Uri, target: String, authToken: Header)
   (implicit client: Client[F], F: Sync[F]) {
