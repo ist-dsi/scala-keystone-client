@@ -35,8 +35,6 @@ scalacOptions in (Compile, console) ~= (_.filterNot { option =>
 })
 scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
 
-fork := true
-
 // ======================================================================================================================
 // ==== Dependencies ====================================================================================================
 // ======================================================================================================================
@@ -51,10 +49,28 @@ libraryDependencies ++= Seq("blaze-client", "dsl", "circe").map { module =>
 )
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
-Test / logBuffered := false
-Test / fork := true
 //coverageEnabled := true
-testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
+
+// ======================================================================================================================
+// ==== Testing =========================================================================================================
+// ======================================================================================================================
+// By default, logging is buffered for each test source file until all tests for that file complete. This disables it.
+Test / logBuffered := false
+// By default, tests executed in a forked JVM are executed sequentially.
+Test / fork := true
+// So we make them run in parallel.
+Test / testForkedParallel := true
+// The tests in a single group are run sequentially. We run 4 suites per forked VM.
+Test / testGrouping := {
+  import sbt.Tests.{Group, SubProcess}
+  (Test / definedTests).value.grouped(4).zipWithIndex.map { case (tests, index) =>
+    Group(index.toString, tests, SubProcess(ForkOptions()))
+  }.toSeq
+}
+
+// http://www.scalatest.org/user_guide/using_the_runner
+//   -o[configs...] - causes test results to be written to the standard output. The D configs shows all durations.
+testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oD")
 
 // ======================================================================================================================
 // ==== Scaladoc ========================================================================================================
@@ -81,9 +97,7 @@ scalacOptions in (Compile, doc) ++= Seq(
 
 enablePlugins(GhpagesPlugin, SiteScaladocPlugin)
 siteSubdirName in SiteScaladoc := s"api/${version.value}"
-//includeFilter in ghpagesCleanSite := (p => p.toPath.toAbsolutePath.startsWith((ghpagesRepository.value / "api" / version.value).toPath.toAbsolutePath))
-//excludeFilter in ghpagesCleanSite := (p => p.toPath.toAbsolutePath.startsWith((ghpagesRepository.value / "api").toPath.toAbsolutePath))
-excludeFilter in ghpagesCleanSite := AllPassFilter // We want to keep the previous API versions, .gitlab-ci.yml, etc
+excludeFilter in ghpagesCleanSite := AllPassFilter // We want to keep all the previous API versions
 val latestFileName = "latest"
 val createLatestSymlink = taskKey[Unit](s"Creates a symlink named $latestFileName which points to the latest version.")
 createLatestSymlink := {
@@ -111,7 +125,7 @@ developers ++= List(
   Developer("afonsomatos", "Afonso Matos", "", url("https://github.com/afonsomatos")),
 )
 
-// Will fail the build/release if updates for the dependencies are found
+// Fail the build/release if updates there are updates for the dependencies
 //dependencyUpdatesFailBuild := true
 
 releaseUseGlobalVersion := false
@@ -125,7 +139,7 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean,
   releaseStepTask(Compile / doc),
-  releaseStepTask(Test / test), // For this to work "docker run --cap-add IPC_LOCK -d --name=dev-vault -p 8200:8200 vault"
+  releaseStepTask(Test / test),
   setReleaseVersion,
   tagRelease,
   releaseStepTask(ghpagesPushSite),

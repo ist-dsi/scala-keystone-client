@@ -1,7 +1,8 @@
 package pt.tecnico.dsi.keystone
 
 import cats.effect.IO
-import pt.tecnico.dsi.keystone.models.WithEnabled
+import org.scalatest.Assertion
+import pt.tecnico.dsi.keystone.models.{WithEnabled, WithId}
 import pt.tecnico.dsi.keystone.services.CRUDService
 
 abstract class CRUDSpec[T]
@@ -10,79 +11,71 @@ abstract class CRUDSpec[T]
 
   def stub: IO[T]
 
-  s"The ${name} service" should {
+  val withSubCreated: IO[(WithId[T], CRUDService[IO, T])] =
+    for {
+      client <- scopedClient
+      crudService = service(client)
+      expected <- stub
+      createdStub <- crudService.create(expected)
+    } yield (createdStub, crudService)
 
-    if (idempotent) {
-      s"create ${name}s" in idempotently { client =>
-        for {
-          expected <- stub
-          actual <- service(client).create(expected)
-        } yield actual.model should be (expected)
+  s"The ${name} service" should {
+    s"create ${name}s" in {
+      val createIO = for {
+        client <- scopedClient
+        expected <- stub
+        createdStub <- service(client).create(expected)
+      } yield (createdStub, expected)
+
+      def test(t: (WithId[T], T)): Assertion = {
+        val (createdStub, expected) = t
+        createdStub.model shouldBe expected
       }
-    } else {
-      s"create ${name}s" in {
-        for {
-          client <- scopedClient
-          expected <- stub
-          actual <- service(client).create(expected)
-        } yield actual.model should be (expected)
+
+      if (idempotent) {
+        createIO.idempotently(test)
+      } else {
+        createIO.map(test)
       }
     }
 
     s"list ${name}s" in {
-      for {
-        client <- scopedClient
-        expected <- stub
-        obj <- service(client).create(expected)
-        isIdempotent <- service(client).list().compile.toList.idempotently(_ should contain (obj))
-      } yield isIdempotent
+      withSubCreated.flatMap { case (createdStub, service) =>
+        service.list().compile.toList.idempotently(_ should contain (createdStub))
+      }
     }
 
     s"get ${name}s" in {
-      for {
-        client <- scopedClient
-        expected <- stub
-        obj <- service(client).create(expected)
-        isIdempotent <- service(client).get(obj.id).valueShouldIdempotentlyBe(obj)
-      } yield isIdempotent
+      withSubCreated.flatMap { case (createdStub, service) =>
+        service.get(createdStub.id).valueShouldIdempotentlyBe(createdStub)
+      }
     }
 
     s"delete a ${name}" in {
-      for {
-        client <- scopedClient
-        expected <- stub
-        obj <- service(client).create(expected)
-        result <- service(client).delete(obj.id).valueShouldIdempotentlyBe(())
-      } yield result
+      withSubCreated.flatMap { case (createdStub, service) =>
+        service.delete(createdStub.id).valueShouldIdempotentlyBe(())
+      }
     }
 
     if (ev != null) {
       s"enable a ${name}" in {
-        for {
-          client <- scopedClient
-          expected <- stub
-          obj <- service(client).create(expected)
-          result <- {
-            for {
-              _ <- service(client).enable(obj.id)
-              get <- service(client).get(obj.id)
-            } yield get.model.enabled
-            }.valueShouldIdempotentlyBe(true)
-        } yield result
+        withSubCreated.flatMap { case (createdStub, service) =>
+          val getEnabled = for {
+            _ <- service.enable(createdStub.id)
+            get <- service.get(createdStub.id)
+          } yield get.model.enabled
+          getEnabled.valueShouldIdempotentlyBe(true)
+        }
       }
 
       s"disable a ${name}" in {
-        for {
-          client <- scopedClient
-          expected <- stub
-          obj <- service(client).create(expected)
-          result <- {
-            for {
-              _ <- service(client).disable(obj.id)
-              get <- service(client).get(obj.id)
-            } yield get.model.enabled
-          }.valueShouldIdempotentlyBe(false)
-        } yield result
+        withSubCreated.flatMap { case (createdStub, service) =>
+          val getDisabled = for {
+            _ <- service.disable(createdStub.id)
+            get <- service.get(createdStub.id)
+          } yield get.model.enabled
+          getDisabled.valueShouldIdempotentlyBe(false)
+        }
       }
     }
 
