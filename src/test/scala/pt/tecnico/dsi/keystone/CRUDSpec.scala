@@ -2,12 +2,12 @@ package pt.tecnico.dsi.keystone
 
 import cats.effect.IO
 import org.scalatest.Assertion
-import pt.tecnico.dsi.keystone.models.{WithEnabled, WithId}
+import pt.tecnico.dsi.keystone.models.{Enabler, WithId}
 import pt.tecnico.dsi.keystone.services.CRUDService
 
 abstract class CRUDSpec[T]
   (val name: String, val service: KeystoneClient[IO] => CRUDService[IO, T], idempotent: Boolean = true)
-  (implicit ev: T <:< WithEnabled[T] = null) extends Utils {
+  (implicit ev: T <:< Enabler[T] = null) extends Utils {
 
   def stub: IO[T]
 

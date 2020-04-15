@@ -52,7 +52,7 @@ case class User(
   passwordExpiresAt: Option[OffsetDateTime] = None,
   enabled: Boolean = true,
   // TODO: handle the extra attributes
-) extends WithEnabled[User] with WithIdOperations[User] {
+) extends Enabler[User] with IdFetcher[User] {
   override def getWithId[F[_]](implicit client: KeystoneClient[F]): F[WithId[User]] = client.users.get(name, domainId)
 
   override def withEnabled(enabled: Boolean): User = copy(enabled = enabled)

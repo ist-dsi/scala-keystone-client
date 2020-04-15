@@ -8,7 +8,7 @@ import io.circe.Codec
 import org.http4s.Status.{Conflict, Successful}
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Request, Response, Uri}
-import pt.tecnico.dsi.keystone.models.{WithEnabled, WithId}
+import pt.tecnico.dsi.keystone.models.{Enabler, WithId}
 
 abstract class CRUDService[F[_]: Sync: Client, T: Codec](baseUri: Uri, val name: String, authToken: Header)
   extends BaseService[F](authToken) {
@@ -43,10 +43,10 @@ abstract class CRUDService[F[_]: Sync: Client, T: Codec](baseUri: Uri, val name:
   def delete(value: WithId[T]): F[Unit] = delete(value.id)
   def delete(id: String): F[Unit] = genericDelete(uri / id)
 
-  def disable(id: String)(implicit ev: T <:< WithEnabled[T]): F[Unit] = updateEnable(id, value = false)
-  def enable(id: String)(implicit ev: T <:< WithEnabled[T]): F[Unit] = updateEnable(id, value = true)
+  def disable(id: String)(implicit ev: T <:< Enabler[T]): F[Unit] = updateEnable(id, value = false)
+  def enable(id: String)(implicit ev: T <:< Enabler[T]): F[Unit] = updateEnable(id, value = true)
 
-  private def updateEnable(id: String, value: Boolean)(implicit ev: T <:< WithEnabled[T]) : F[Unit] = {
+  private def updateEnable(id: String, value: Boolean)(implicit ev: T <:< Enabler[T]) : F[Unit] = {
     for {
       obj <- get(id)
       _ <- update(obj.id, ev(obj.model).withEnabled(value))

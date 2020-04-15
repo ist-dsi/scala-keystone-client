@@ -20,8 +20,10 @@ case class Project private[keystone] (
   isDomain: Boolean,
   enabled: Boolean,
   tags: List[String]
-) extends WithEnabled[Project] with WithRoleAssignment[Project] {
-  override def service[F[_]](implicit client: KeystoneClient[F]): Projects[F] = client.projects
-  override def withId[F[_]](implicit client: KeystoneClient[F]): F[WithId[Project]] = service.get(name, domainId)
+) extends Enabler[Project] with IdFetcher[Project] with RoleAssigner[Project] {
   override def withEnabled(enabled: Boolean): Project = copy(enabled = enabled)
+
+  override def getWithId[F[_]](implicit client: KeystoneClient[F]): F[WithId[Project]] = client.projects.get(name, domainId)
+
+  override def service[F[_]](implicit client: KeystoneClient[F]): Projects[F] = client.projects
 }

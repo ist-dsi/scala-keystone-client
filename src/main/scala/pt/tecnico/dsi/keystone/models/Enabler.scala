@@ -1,6 +1,5 @@
 package pt.tecnico.dsi.keystone.models
 
-trait WithEnabled[T] {
-  def enabled: Boolean
+trait Enabler[T] {
   def withEnabled(enabled: Boolean): T
 }

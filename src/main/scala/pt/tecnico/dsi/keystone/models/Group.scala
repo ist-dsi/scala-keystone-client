@@ -21,7 +21,7 @@ object Group {
   }
 }
 
-case class Group(name: String, description: String, domainId: String) extends WithIdOperations[Group] {
+case class Group(name: String, description: String, domainId: String) extends IdFetcher[Group] {
   override def getWithId[F[_]](implicit client: KeystoneClient[F]): F[WithId[Group]] = client.groups.get(name, domainId)
 
   def domain[F[_]](implicit client: KeystoneClient[F]): F[WithId[Domain]] = client.domains.get(domainId)

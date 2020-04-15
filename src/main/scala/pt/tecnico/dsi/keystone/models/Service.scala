@@ -15,6 +15,6 @@ case class Service private[keystone] (
   `type`: String,
   description: Option[String],
   enabled: Boolean,
-) extends WithEnabled[Service] {
+) extends Enabler[Service] {
   override def withEnabled(enabled: Boolean): Service = copy(enabled = enabled)
 }
