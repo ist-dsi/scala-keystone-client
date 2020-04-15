@@ -7,7 +7,7 @@ import fs2.Stream
 import pt.tecnico.dsi.keystone.KeystoneClient
 import pt.tecnico.dsi.keystone.services.{RoleAssignment, RoleAssignmentService}
 
-trait RoleAssigner[T] { self: IdFetcher[T] =>
+trait RoleAssigner[T <: IdFetcher[T]] { self: IdFetcher[T] =>
   /** Returns the role assignment service responsible for managing roles. */
   def service[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F]
 
@@ -18,32 +18,18 @@ trait RoleAssigner[T] { self: IdFetcher[T] =>
   }
 }
 
-class ContextualRoleAssignmentService[F[_]: Sync: KeystoneClient, T](idOperations: IdFetcher[T], roleAssignmentService: RoleAssignmentService[F]) {
+class ContextualRoleAssignmentService[F[_]: Sync: KeystoneClient, T <: IdFetcher[T]](idOperations: IdFetcher[T], roleAssignmentService: RoleAssignmentService[F]) {
   import idOperations._
-  // TODO: List is missing
 
+  /** @see [[RoleAssignmentService.list]] */
   def list(targetId: String): Stream[F, WithId[Role]] = withId(o => roleAssignmentService.list(o.id, targetId))
 
-  /**
-    * @see [[RoleAssignmentService.check]]
-    */
+  /** @see [[RoleAssignmentService.check]] */
   def check(targetId: String, roleId: String): F[Boolean] = withId(o => roleAssignmentService.check(o.id, targetId, roleId))
 
-  /**
-    * @see [[RoleAssignmentService.assign]]
-    */
-  def assign(targetId: String, roleId: String): F[Unit] = {
-    idOperations.map(_.id).flatMap { id =>
-      roleAssignmentService.assign(id, targetId, roleId)
-    }
-  }
+  /** @see [[RoleAssignmentService.assign]] */
+  def assign(targetId: String, roleId: String): F[Unit] = withId(o => roleAssignmentService.assign(o.id, targetId, roleId))
 
-  /**
-    * @see [[RoleAssignmentService.delete]]
-    */
-  def delete(targetId: String, roleId: String): F[Unit] = {
-    idOperations.map(_.id).flatMap { id =>
-      roleAssignmentService.delete(id, targetId, roleId)
-    }
-  }
+  /** @see [[RoleAssignmentService.delete]] */
+  def delete(targetId: String, roleId: String): F[Unit] = withId(o => roleAssignmentService.delete(o.id, targetId, roleId))
 }

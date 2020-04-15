@@ -1,7 +1,7 @@
 package pt.tecnico.dsi.keystone
 
 import cats.effect.IO
-import pt.tecnico.dsi.keystone.models.{Domain, Group, Role}
+import pt.tecnico.dsi.keystone.models.{Domain, Group, Role, WithId}
 
 class DomainSpec extends CRUDSpec[Domain]("domain", _.domains) with RoleAssignmentSpec[Domain] {
   def roleService = _.domains

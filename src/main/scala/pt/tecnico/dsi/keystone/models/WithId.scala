@@ -28,7 +28,7 @@ object WithId {
 case class WithId[T](id: String, model: T, link: Option[Uri])
 
 trait IdFetcher[T <: IdFetcher[T]] {
-  def getWithId[F[_]](implicit client: KeystoneClient[F]): F[WithId[T]]
+  def getWithId[F[_]: Sync](implicit client: KeystoneClient[F]): F[WithId[T]]
 
   def withId[F[_]: Sync: KeystoneClient, R](f: WithId[T] => F[R]): F[R] = getWithId.flatMap(f)
   def withId[F[_]: Sync: KeystoneClient, R](f: WithId[T] => Stream[F, R]): Stream[F, R] = Stream.eval(getWithId).flatMap(f)

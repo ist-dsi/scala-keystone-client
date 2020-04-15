@@ -11,18 +11,11 @@ object Domain {
 
   def apply(name: String, enabled: Boolean, description: String): Domain = Domain(name, enabled, description, Seq.empty)
 
-  implicit class WithIdDomainExtensions[F[_]](domain: WithId[Domain])(implicit client: KeystoneClient[F], F: Sync[F])
+  implicit class WithIdDomainExtensions[H[_]](domain: WithId[Domain])(implicit client: KeystoneClient[H], H: Sync[H])
     extends IdFetcher[Domain] with RoleAssigner[Domain] {
 
-    /*private val idFetcher = new IdFetcher[Domain] {
-      override def getWithId[F[_]](implicit client: KeystoneClient[F]): F[WithId[Domain]] = F.pure(domain)
-    }
-    object roles {
-      def users[F[_]: Sync](implicit client: KeystoneClient[F]) = new ContextualRoleAssignmentService[F, Domain](idFetcher, client.domains.roles.users)
-      def groups[F[_]: Sync](implicit client: KeystoneClient[F]) = new ContextualRoleAssignmentService[F, Domain](idFetcher, client.domains.roles.groups)
-    }*/
-    override def getWithId[F[_]](implicit client: KeystoneClient[F]): F[WithId[Domain]] = F.pure(domain)
-    override def service[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = client.domains
+    override def getWithId[F[_]: Sync](implicit client: KeystoneClient[F]): F[WithId[Domain]] = implicitly(Sync[F]).pure(domain)
+    override def service[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = domain.service
   }
 }
 
@@ -34,7 +27,7 @@ case class Domain(
 ) extends Enabler[Domain] with IdFetcher[Domain] with RoleAssigner[Domain] {
   override def withEnabled(enabled: Boolean): Domain = copy(enabled = enabled)
 
-  override def getWithId[F[_]](implicit client: KeystoneClient[F]): F[WithId[Domain]] = client.domains.getByName(name)
+  override def getWithId[F[_]: Sync](implicit client: KeystoneClient[F]): F[WithId[Domain]] = client.domains.getByName(name)
 
   override def service[F[_]](implicit client: KeystoneClient[F]): Domains[F] = client.domains
 }
