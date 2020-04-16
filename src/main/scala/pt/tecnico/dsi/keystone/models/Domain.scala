@@ -1,12 +1,22 @@
 package pt.tecnico.dsi.keystone.models
 
+import cats.effect.Sync
 import io.circe.Codec
 import io.circe.derivation.{deriveCodec, renaming}
+import pt.tecnico.dsi.keystone.KeystoneClient
+import pt.tecnico.dsi.keystone.services.{Domains, RoleAssignment}
 
 object Domain {
   implicit val codec: Codec.AsObject[Domain] = deriveCodec(renaming.snakeCase, false, None)
 
   def apply(name: String, enabled: Boolean, description: String): Domain = Domain(name, enabled, description, Seq.empty)
+
+  implicit class WithIdDomainExtensions[H[_]](domain: WithId[Domain])(implicit client: KeystoneClient[H], H: Sync[H])
+    extends IdFetcher[Domain] with RoleAssigner[Domain] {
+
+    override def getWithId[F[_]: Sync](implicit client: KeystoneClient[F]): F[WithId[Domain]] = implicitly(Sync[F]).pure(domain)
+    override def service[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = domain.service
+  }
 }
 
 case class Domain(
@@ -14,7 +24,11 @@ case class Domain(
   enabled: Boolean,
   description: String,
   tags: Seq[String]
-) extends WithEnabled[Domain] {
+) extends Enabler[Domain] with IdFetcher[Domain] with RoleAssigner[Domain] {
   override def withEnabled(enabled: Boolean): Domain = copy(enabled = enabled)
+
+  override def getWithId[F[_]: Sync](implicit client: KeystoneClient[F]): F[WithId[Domain]] = client.domains.getByName(name)
+
+  override def service[F[_]](implicit client: KeystoneClient[F]): Domains[F] = client.domains
 }
 

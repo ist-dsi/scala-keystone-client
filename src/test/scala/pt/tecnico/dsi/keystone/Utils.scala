@@ -29,7 +29,7 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   implicit val cs: ContextShift[IO] = IO.contextShift(executionContext)
 
   val (_httpClient, finalizer) = BlazeClientBuilder[IO](global)
-    .withResponseHeaderTimeout(10.seconds)
+    .withResponseHeaderTimeout(20.seconds)
     .withCheckEndpointAuthentication(false)
     .resource.allocated.unsafeRunSync()
 

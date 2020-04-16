@@ -8,8 +8,8 @@ import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Domain, WithId}
 
-class Domains[F[_]: Sync](baseUri: Uri, authToken: Header)(implicit client: Client[F])
-  extends CRUDService[F, Domain](baseUri, "domain", authToken) {
+final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, Domain](baseUri, "domain", authToken)
+  with RoleAssignment[F] {
   import dsl._
 
   /**
