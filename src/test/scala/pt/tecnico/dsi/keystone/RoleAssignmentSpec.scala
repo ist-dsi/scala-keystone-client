@@ -2,17 +2,19 @@ package pt.tecnico.dsi.keystone
 
 import cats.effect.IO
 import org.scalatest.BeforeAndAfterEach
-
 import pt.tecnico.dsi.keystone.models.{Group, Role, User}
-import pt.tecnico.dsi.keystone.services.{CRUDService, RoleAssignmentService, RoleAssignment}
+import pt.tecnico.dsi.keystone.services.{CRUDService, RoleAssignment, RoleAssignmentService}
 
 trait RoleAssignmentSpec[T] extends BeforeAndAfterEach { this: CRUDSpec[T] =>
 
   var roles = 0
-  override def beforeEach = for {
-    client <- scopedClient
-    list <- service(client).list().compile.toList
-  } yield list.foreach(s => service(client).delete(s.id))
+  override def beforeEach(): Unit = {
+    val cleanup = for {
+      client <- scopedClient
+      list <- service(client).list().compile.toList
+    } yield list.foreach(s => service(client).delete(s.id))
+    cleanup.unsafeRunSync()
+  }
 
   def roleService: KeystoneClient[IO] => RoleAssignment[IO]
 

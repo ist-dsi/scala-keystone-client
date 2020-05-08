@@ -21,15 +21,15 @@ trait RoleAssigner[T <: IdFetcher[T]] { self: IdFetcher[T] =>
 class ContextualRoleAssignmentService[F[_]: Sync: KeystoneClient, T <: IdFetcher[T]](idOperations: IdFetcher[T], roleAssignmentService: RoleAssignmentService[F]) {
   import idOperations._
 
-  /** @see [[RoleAssignmentService.list]] */
+  /** @see RoleAssignmentService.list */
   def list(targetId: String): Stream[F, WithId[Role]] = withId(o => roleAssignmentService.list(o.id, targetId))
 
-  /** @see [[RoleAssignmentService.check]] */
+  /** @see RoleAssignmentService.check */
   def check(targetId: String, roleId: String): F[Boolean] = withId(o => roleAssignmentService.check(o.id, targetId, roleId))
 
-  /** @see [[RoleAssignmentService.assign]] */
+  /** @see RoleAssignmentService.assign */
   def assign(targetId: String, roleId: String): F[Unit] = withId(o => roleAssignmentService.assign(o.id, targetId, roleId))
 
-  /** @see [[RoleAssignmentService.delete]] */
+  /** @see RoleAssignmentService.delete */
   def delete(targetId: String, roleId: String): F[Unit] = withId(o => roleAssignmentService.delete(o.id, targetId, roleId))
 }

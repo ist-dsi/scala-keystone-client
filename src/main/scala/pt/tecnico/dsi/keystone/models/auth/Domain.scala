@@ -11,6 +11,17 @@ object Domain {
   def name(name: String): Domain = Domain(None, Some(name))
 
   def apply(id: String, name: String): Domain = Domain(Some(id), Some(name))
+
+  def fromEnvironment(env: Map[String, String], prefix: String = "OS"): Option[Domain] = {
+    val idOpt = env.get(s"${prefix}_DOMAIN_ID") orElse env.get("OS_DEFAULT_DOMAIN_ID") orElse env.get("OS_DEFAULT_DOMAIN")
+    val nameOpt = env.get(s"${prefix}_DOMAIN_NAME") orElse env.get("OS_DEFAULT_DOMAIN_NAME")
+    (idOpt, nameOpt) match {
+      case (Some(id), Some(name)) => Some(Domain(id, name))
+      case (Some(id), None) => Some(Domain.id(id))
+      case (None, Some(name)) => Some(Domain.name(name))
+      case _ => None
+    }
+  }
 }
 
 case class Domain private (id: Option[String], name: Option[String])

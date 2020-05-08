@@ -1,13 +1,19 @@
 package pt.tecnico.dsi.keystone
 
 import cats.effect.Sync
-import org.http4s._
+import cats.syntax.flatMap._
 import org.http4s.client.Client
+import org.http4s.{Header, Uri}
 import pt.tecnico.dsi.keystone.models.Session
 import pt.tecnico.dsi.keystone.services._
-import pt.tecnico.dsi.keystone.services.Credentials
 
 object KeystoneClient {
+	def fromEnvironment[F[_]: Client](env: Map[String, String] = sys.env)(implicit F: Sync[F]): F[KeystoneClient[F]] = {
+		F.fromOption(env.get("OS_AUTH_URL"), new Throwable(s"Could not get OS_AUTH_URL from the environment"))
+			.flatMap(authUrl => F.fromEither(Uri.fromString(authUrl)))
+			.flatMap(baseUri => apply(baseUri).authenticateFromEnvironment(env))
+	}
+
 	def apply[F[_]: Client: Sync](baseUri: Uri): UnauthenticatedKeystoneClient[F] = new UnauthenticatedKeystoneClient(baseUri)
 }
 

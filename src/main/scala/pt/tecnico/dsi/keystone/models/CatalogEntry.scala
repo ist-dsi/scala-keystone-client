@@ -19,6 +19,6 @@ case class CatalogEntry(`type`: String, serviceId: String, serviceName: String, 
   lazy val urisPerRegionPerInterface: Map[String, Map[Interface, String]] = endpoints.groupBy(_.regionId).view.mapValues { perRegion =>
     perRegion.groupMap(_.interface)(_.url).view.mapValues(_.head).toMap
   }.toMap
-  def urlOf(region: String, interface: Interface): Option[String] = urisPerRegionPerInterface.get(region).flatMap(_.get(interface))
   def urlsOf(region: String): Option[Map[Interface, String]] = urisPerRegionPerInterface.get(region)
+  def urlOf(region: String, interface: Interface): Option[String] = urlsOf(region).flatMap(_.get(interface))
 }

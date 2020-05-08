@@ -22,6 +22,7 @@ object WithId {
       } yield WithId(id, model, link)
   }
 
+  import scala.language.implicitConversions
   implicit def toModel[T](modelWithId: WithId[T]): T = modelWithId.model
 }
 // All Openstack IDs are strings, 99% are random UUIDs

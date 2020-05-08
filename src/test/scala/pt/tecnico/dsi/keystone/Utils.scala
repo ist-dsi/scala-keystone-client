@@ -1,10 +1,12 @@
 package pt.tecnico.dsi.keystone
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, Future}
+import scala.sys.process._
 import cats.effect.{ContextShift, IO, Timer}
 import cats.instances.list._
 import cats.syntax.traverse._
-import cats.syntax.flatMap._
-import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
 import org.log4s._
@@ -12,13 +14,6 @@ import org.scalatest._
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
-import pt.tecnico.dsi.keystone.models.Scope
-import pt.tecnico.dsi.keystone.models.auth.{Credential, Domain, Project}
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ExecutionContext, Future}
-import scala.sys.process._
 
 abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
   val logger: Logger = getLogger
@@ -39,20 +34,11 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
 
   val ignoreStdErr = ProcessLogger(_ => ())
   val openstackEnvVariableRegex = """(?<=\+\+ )(OS_[A-Z_]+)=([^\n]+)""".r.unanchored
-  val dockerLogLines = "docker logs dev-keystone".lazyLines(ignoreStdErr)
-  val dockerVars = dockerLogLines.collect {
+  val dockerVars = "docker logs dev-keystone".lazyLines(ignoreStdErr).collect {
     case openstackEnvVariableRegex(key, value) => key -> value
   }.toMap
 
-  val scopedClient: IO[KeystoneClient[IO]] = KeystoneClient[IO](Uri.unsafeFromString(dockerVars("OS_AUTH_URL")))
-    .authenticateWithPassword(
-      Credential(dockerVars("OS_USERNAME"), dockerVars("OS_PASSWORD"), Domain.id(dockerVars("OS_USER_DOMAIN_ID"))),
-      Scope(Project(dockerVars("OS_PROJECT_NAME"), Domain.id(dockerVars("OS_PROJECT_DOMAIN_ID"))))
-    )
-  val unscopedClient: IO[KeystoneClient[IO]] = KeystoneClient[IO](Uri.unsafeFromString(dockerVars("OS_AUTH_URL")))
-    .authenticateWithPassword(
-      Credential(dockerVars("OS_USERNAME"), dockerVars("OS_PASSWORD"), Domain.id(dockerVars("OS_USER_DOMAIN_ID")))
-    )
+  val scopedClient: IO[KeystoneClient[IO]] = KeystoneClient.fromEnvironment(dockerVars)
 
   implicit class RichIO[T](io: IO[T]) {
     def value(test: T => Assertion): IO[Assertion] = io.map(test)
@@ -91,6 +77,7 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
     def valueShouldIdempotentlyBe(value: T): IO[Assertion] = idempotently(_ shouldBe value)
   }
 
+  import scala.language.implicitConversions
   implicit def io2Future[T](io: IO[T]): Future[T] = io.unsafeToFuture()
 
   private def ordinalSuffix(number: Int): String = {

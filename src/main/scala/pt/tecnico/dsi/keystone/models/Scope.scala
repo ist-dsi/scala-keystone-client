@@ -14,6 +14,13 @@ case object Scope extends Enum[Scope] {
   def apply(domain: auth.Domain): Scope = Domain(domain)
   def apply(project: auth.Project): Scope = Project(project)
 
+  def fromEnvironment(env: Map[String, String]): Option[Scope] = {
+    val systemOpt = env.get("OS_SYSTEM_SCOPE").map(value => System(value.toLowerCase == "all"))
+    val domainOpt = auth.Domain.fromEnvironment(env).map(Domain.apply)
+    val projectOpt = auth.Project.fromEnvironment(env).map(Project.apply)
+    systemOpt orElse domainOpt orElse projectOpt
+  }
+
   implicit val decoderSystem: Decoder[System] = (c: HCursor) => c.downField("system").get[Boolean]("all").map(System.apply)
   implicit val decoderDomain: Decoder[Domain] = (c: HCursor) => c.get[auth.Domain]("domain").map(Domain.apply)
   implicit val decoderProject: Decoder[Project] = (c: HCursor) => c.get[auth.Project]("project").map(Project.apply)
