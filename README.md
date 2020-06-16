@@ -33,7 +33,7 @@ Unsupported endpoints (we accept PRs :)):
 ## Install
 Add the following dependency to your `build.sbt`:
 ```sbt
-libraryDependencies += "pt.tecnico.dsi" %% "scala-keystoneclient" % "0.0.0"
+libraryDependencies += "pt.tecnico.dsi" %% "scala-keystone-client" % "0.0.0"
 ```
 We use [semantic versioning](http://semver.org).
 
@@ -58,4 +58,4 @@ object Example extends IOApp {
 ```
 
 ## License
-scala-vault is open source and available under the [MIT license](LICENSE).
+scala-keystone-client is open source and available under the [MIT license](LICENSE).
