@@ -25,7 +25,7 @@ case object Scope extends Enum[Scope] {
   implicit val decoderDomain: Decoder[Domain] = (c: HCursor) => c.get[auth.Domain]("domain").map(Domain.apply)
   implicit val decoderProject: Decoder[Project] = (c: HCursor) => c.get[auth.Project]("project").map(Project.apply)
   implicit val decoder: Decoder[Scope] = { cursor: HCursor =>
-    // If we cannot decode to a System|Domain|Project Scope then it is the Unscoped Domain by definition
+    // If we cannot decode to a System|Domain|Project Scope then it is the Unscoped by definition
     decoderSystem(cursor) orElse decoderDomain(cursor) orElse decoderProject(cursor) orElse Right(Unscoped)
   }
 

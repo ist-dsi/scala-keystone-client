@@ -4,7 +4,7 @@ import io.circe.Codec
 import io.circe.derivation.{deriveCodec, renaming}
 
 object Project {
-  implicit val codec: Codec.AsObject[Project] = deriveCodec(renaming.snakeCase, false, None)
+  implicit val codec: Codec.AsObject[Project] = deriveCodec(renaming.snakeCase)
 
   def apply(id: String): Project = new Project(Some(id), None, None)
   def apply(name: String, domain: Domain): Project = new Project(None, Some(name), Some(domain))

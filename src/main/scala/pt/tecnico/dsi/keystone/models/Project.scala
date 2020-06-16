@@ -7,7 +7,7 @@ import pt.tecnico.dsi.keystone.KeystoneClient
 import pt.tecnico.dsi.keystone.services.{Domains, Projects, RoleAssignment}
 
 object Project {
-  implicit val codec: Codec.AsObject[Project] = deriveCodec(renaming.snakeCase, false, None)
+  implicit val codec: Codec.AsObject[Project] = deriveCodec(renaming.snakeCase)
 
   def apply(name: String, description: String, domainId: String,
             isDomain: Boolean = false, enabled: Boolean = true): Project =

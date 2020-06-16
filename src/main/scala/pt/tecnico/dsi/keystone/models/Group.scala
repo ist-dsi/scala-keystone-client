@@ -9,7 +9,7 @@ import io.circe.derivation.{deriveCodec, renaming}
 import pt.tecnico.dsi.keystone.KeystoneClient
 
 object Group {
-  implicit val codec: Codec.AsObject[Group] = deriveCodec(renaming.snakeCase, false, None)
+  implicit val codec: Codec.AsObject[Group] = deriveCodec(renaming.snakeCase)
 
   implicit class WithIdGroupExtensions[F[_]](group: WithId[Group])(implicit client: KeystoneClient[F], F: Sync[F]) {
     val users: Stream[F, WithId[User]] = client.groups.listUsers(group.id)

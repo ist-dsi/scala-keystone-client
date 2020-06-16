@@ -6,14 +6,27 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/)](https://www.codacy.com/app/IST-DSI/scala-keystoneclient?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ist-dsi/scala-vault&amp;utm_campaign=Badge_Grade)
 [![BCH compliance](https://bettercodehub.com/edge/badge/ist-dsi/scala-keystoneclient)](https://bettercodehub.com/results/ist-dsi/scala-keystoneclient)
 
-The Scala client for Openstack Keystone.
+A pure functional Scala client for Openstack Keystone implemented using Http4s client.
 
-Currently supported endpoints:
-  
-- :
-  - 
-- :
-  - 
+Supported endpoints:
+- [Authentication and token management](https://docs.openstack.org/api-ref/identity/v3/#authentication-and-token-management)
+  - Multi factor authentication is not implemented.
+- [Credentials](https://docs.openstack.org/api-ref/identity/v3/#credentials)
+- [Domains](https://docs.openstack.org/api-ref/identity/v3/#domains)
+- [Groups](https://docs.openstack.org/api-ref/identity/v3/#groups)
+- [Projects](https://docs.openstack.org/api-ref/identity/v3/#projects)
+- [Regions](https://docs.openstack.org/api-ref/identity/v3/#regions)
+- [Roles](https://docs.openstack.org/api-ref/identity/v3/#roles)
+- [System Role Assignments](https://docs.openstack.org/api-ref/identity/v3/#system-role-assignments)
+- [Service catalog and endpoints](https://docs.openstack.org/api-ref/identity/v3/#service-catalog-and-endpoints)  
+- [Users](https://docs.openstack.org/api-ref/identity/v3/#users)
+
+Unsupported endpoints (we accept PRs :)):
+- [Application Credentials](https://docs.openstack.org/api-ref/identity/v3/#application-credentials)
+- [Domain Configuration](https://docs.openstack.org/api-ref/identity/v3/#domain-configuration)
+- [OS-INHERIT](https://docs.openstack.org/api-ref/identity/v3/#os-inherit)
+- [Project Tags](https://docs.openstack.org/api-ref/identity/v3/#project-tags)
+- [Unified Limits](https://docs.openstack.org/api-ref/identity/v3/#unified-limits)
 
 [Latest scaladoc documentation](https://ist-dsi.github.io/scala-keystoneclient/latest/api/pt/tecnico/dsi/scala-keystoneclient/index.html)
 
@@ -23,6 +36,26 @@ Add the following dependency to your `build.sbt`:
 libraryDependencies += "pt.tecnico.dsi" %% "scala-keystoneclient" % "0.0.0"
 ```
 We use [semantic versioning](http://semver.org).
+
+## Usage
+```scala
+import scala.concurrent.ExecutionContext.Implicits.global
+import cats.effect._
+import org.http4s.client.blaze.BlazeClientBuilder
+import pt.tecnico.dsi.keystone.KeystoneClient
+
+object Example extends IOApp {
+  override def run(args: List[String]): IO[ExitCode] = {
+    BlazeClientBuilder[IO](global).resource.use { implicit httpClient =>
+      for {
+        client <- KeystoneClient.fromEnvironment()
+        projects <- client.projects.list().compile.toList
+        _ = println(projects.mkString("\n"))
+      } yield ExitCode.Success
+    }
+  }
+}
+```
 
 ## License
 scala-vault is open source and available under the [MIT license](LICENSE).

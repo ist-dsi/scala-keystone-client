@@ -4,7 +4,7 @@ import io.circe.derivation.{deriveDecoder, renaming}
 import io.circe.{Decoder, HCursor}
 
 object CatalogEntry {
-  private implicit val decoderUrl: Decoder[Url] = deriveDecoder(renaming.snakeCase, false, None)
+  private implicit val decoderUrl: Decoder[Url] = deriveDecoder(renaming.snakeCase)
   private case class Url(id: String, interface: Interface, regionId: String, url: String)
 
   implicit val decoder: Decoder[CatalogEntry] = (c: HCursor) => for {

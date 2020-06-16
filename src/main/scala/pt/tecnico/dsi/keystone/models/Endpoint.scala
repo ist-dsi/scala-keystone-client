@@ -4,7 +4,7 @@ import io.circe.Codec
 import io.circe.derivation.{deriveCodec, renaming}
 
 object Endpoint {
-  implicit val codec: Codec.AsObject[Endpoint] = deriveCodec(renaming.snakeCase, false, None)
+  implicit val codec: Codec.AsObject[Endpoint] = deriveCodec(renaming.snakeCase)
 }
 case class Endpoint(
   interface: Interface,

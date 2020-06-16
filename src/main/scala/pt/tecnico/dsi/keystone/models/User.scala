@@ -17,14 +17,14 @@ object User {
    }
    We simply ignore the domain name and read domain.id directly to domainId. The domain can be easily obtained from
    the User domain class*/
-  implicit val decoder: Decoder[User] = deriveDecoder(renaming.snakeCase, true, None).prepare { cursor =>
+  implicit val decoder: Decoder[User] = deriveDecoder(renaming.snakeCase).prepare { cursor =>
     val domainIdCursor = cursor.downField("domain").downField("id")
     domainIdCursor.as[String] match {
       case Right(domainId) => domainIdCursor.up.delete.withFocus(_.mapObject(_.add("domain_id", domainId.asJson)))
       case Left(_) => cursor
     }
   }
-  implicit val encoder: Encoder[User] = deriveEncoder(renaming.snakeCase, None).mapJsonObject(_.remove("password_expires_at"))
+  implicit val encoder: Encoder.AsObject[User] = deriveEncoder(renaming.snakeCase).mapJsonObject(_.remove("password_expires_at"))
   implicit val codec: Codec[User] = Codec.from(decoder, encoder)
 
   def apply(name: String, domainId: String, defaultProjectId: Option[String], enabled: Boolean): User =
