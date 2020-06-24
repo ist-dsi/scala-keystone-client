@@ -3,7 +3,7 @@ package pt.tecnico.dsi.keystone
 import cats.effect.IO
 import pt.tecnico.dsi.keystone.models.Role
 
-class RoleSpec extends CRUDSpec[Role]("role", _.roles) {
+class RoleSpec extends CrudSpec[Role]("role", _.roles) {
   def stub = IO.pure(Role(
     name = "test-role2",
     description = Some("some-description"),

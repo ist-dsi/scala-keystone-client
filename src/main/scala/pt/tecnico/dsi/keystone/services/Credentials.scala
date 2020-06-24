@@ -3,11 +3,12 @@ package pt.tecnico.dsi.keystone.services
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import fs2.Stream
+import io.circe.Encoder
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Credential, WithId}
 
-final class Credentials[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, Credential](baseUri, "credential", authToken) {
+final class Credentials[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CrudService[F, Credential](baseUri, "credential", authToken) {
 
   /**
     * @param userId filters the response by a user ID.
@@ -20,7 +21,7 @@ final class Credentials[F[_]: Sync: Client](baseUri: Uri, authToken: Header) ext
       "type" -> `type`,
     )))
 
-  override def create(credential: Credential): F[WithId[Credential]] = createHandleConflict(credential) { _ =>
+  override def create(credential: Credential)(implicit encoder: Encoder[Credential]): F[WithId[Credential]] = createHandleConflict(credential) { _ =>
     list(userId = Some(credential.userId), `type` = Some("ec2"))
       .filter(c => c.projectId == credential.projectId).compile.lastOrError
       .flatMap(existingCredential => update(existingCredential.id, credential))

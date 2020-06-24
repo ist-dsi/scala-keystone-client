@@ -4,10 +4,11 @@ import cats.effect.Sync
 import fs2.Stream
 import org.http4s.Status.{NotFound, Successful}
 import org.http4s.client.{Client, UnexpectedStatus}
-import org.http4s.{Header, Uri}
+import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Role, WithId}
+import org.http4s.Method.{HEAD, PUT}
 
-trait RoleAssignment[F[_]] { this: BaseService[F] =>
+trait RoleAssignment[F[_]] { this: CrudService[F, _] =>
   object roles {
     /**
       * Role assignments for users on this context.
@@ -20,7 +21,7 @@ trait RoleAssignment[F[_]] { this: BaseService[F] =>
   }
 }
 
-class RoleAssignmentService[F[_]: Sync: Client](val uri: Uri, target: String, authToken: Header) extends BaseService[F](authToken) {
+class RoleAssignmentService[F[_]: Sync: Client](val uri: Uri, target: String, authToken: Header) extends Service[F](authToken) {
   import dsl._
 
   /**
@@ -30,7 +31,7 @@ class RoleAssignmentService[F[_]: Sync: Client](val uri: Uri, target: String, au
     * @return roles assigned
     */
   def list(id: String, targetId: String): Stream[F, WithId[Role]] =
-    genericList[WithId[Role]]("roles", uri / id / target / targetId / "roles")
+    super.list[WithId[Role]]("roles", uri / id / target / targetId / "roles", Query.empty)
 
   /**
     * Assigns a role to a target on a certain context
@@ -62,5 +63,5 @@ class RoleAssignmentService[F[_]: Sync: Client](val uri: Uri, target: String, au
     * @param targetId the target's id
     */
   def delete(id: String, targetId: String, roleId: String): F[Unit] =
-    genericDelete(uri / id / target / targetId / "roles" / roleId)
+    super.delete(uri / id / target / targetId / "roles" / roleId)
 }

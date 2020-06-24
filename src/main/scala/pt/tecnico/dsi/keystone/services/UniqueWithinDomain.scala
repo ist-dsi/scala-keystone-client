@@ -5,7 +5,7 @@ import org.http4s.Query
 import pt.tecnico.dsi.keystone.models.WithId
 
 // This would be really helpful here https://github.com/scala/bug/issues/9785
-trait UniqueWithinDomain[F[_], T] { this: CRUDService[F, T] =>
+trait UniqueWithinDomain[F[_], T] { this: CrudService[F, T] =>
   /** Lists `T`s with the given name.
     * @note Since the `T` name must be unique within a domain, all the returned `T`s will have different domains.
     * @param name the name to search for.

@@ -11,8 +11,8 @@ class RoleAssignmentWithoutId[F[_]](base: RoleAssignmentService[F]) {
   def delete(targetId: String, roleId: String)= base.delete("", targetId, roleId)
 }
 
-final class System[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends BaseService[F](authToken) {
-  override val uri: Uri = baseUri / "system"
+final class System[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends Service[F](authToken) {
+  val uri: Uri = baseUri / "system"
 
   object roles {
     private val base = new RoleAssignmentService[F](uri, _, authToken)

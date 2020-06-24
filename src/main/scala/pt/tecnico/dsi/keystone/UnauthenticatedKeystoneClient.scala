@@ -3,31 +3,52 @@ package pt.tecnico.dsi.keystone
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import io.circe.Json
+import io.circe.derivation.{deriveEncoder, renaming}
+import io.circe.{Decoder, Encoder, Json, Printer}
 import io.circe.syntax._
 import org.http4s.Status.Successful
 import org.http4s.client.dsl.Http4sClientDsl
-import org.http4s.client.{Client, UnexpectedStatus}
-import org.http4s.dsl.impl.Methods
+import org.http4s.client.Client
 import org.http4s.syntax.string._
-import org.http4s.{Header, Uri}
-import pt.tecnico.dsi.keystone.models.auth.Credential
+import org.http4s.{EntityDecoder, EntityEncoder, Header, Uri, circe}
+import pt.tecnico.dsi.keystone.UnauthenticatedKeystoneClient.Credential
+import pt.tecnico.dsi.keystone.models.Scope.Domain
 import pt.tecnico.dsi.keystone.models.{Scope, Session}
-import pt.tecnico.dsi.keystone.services._
+import org.http4s.Method.POST
 
-class UnauthenticatedKeystoneClient[F[_]](val baseUri: Uri)(implicit client: Client[F], F: Sync[F]) {
-  //TODO: for scoped authentication speciallize the session type in KeystoneClient to be ScopedSession
-  /**
-    * Authenticates an identity and generates a token. Uses the password authentication method. Authorization is unscoped.
-    * @param credential the credentials to authenticate with.
-    */
-  def authenticateWithPassword(credential: Credential): F[KeystoneClient[F]] = authenticate(Left(credential))
-  /**
-    * Authenticates an identity and generates a token. Uses the password authentication method and scopes authorization to `scope`.
-    * @param credential the credentials to authenticate with.
-    * @param scope the scope to which the authorization will be scoped to.
-    */
-  def authenticateWithPassword(credential: Credential, scope: Scope): F[KeystoneClient[F]] = authenticate(Left(credential), Some(scope))
+object UnauthenticatedKeystoneClient {
+  object Credential {
+    implicit val encoder: Encoder.AsObject[Credential] = deriveEncoder[Credential](renaming.snakeCase)
+
+    def apply(id: String, password: String): Credential = new Credential(Some(id), None, password, None)
+    def apply(name: String, password: String, domain: Domain): Credential = new Credential(None, Some(name), password, Some(domain))
+
+    def fromEnvironment(env: Map[String, String]): Option[Credential] =
+      env.get("OS_PASSWORD").flatMap { password =>
+        val idOpt = env.get("OS_USER_ID").map(id => Credential(id, password))
+        val nameOpt = env.get("OS_USERNAME").zip(Domain.fromEnvironment(env, "OS_USER"))
+          .map { case (name, domain) => Credential(name, password, domain) }
+
+        idOpt orElse nameOpt
+      }
+  }
+  case class Credential(id: Option[String], name: Option[String], password: String, domain: Option[Domain])
+}
+class UnauthenticatedKeystoneClient[F[_]](baseUri: Uri)(implicit client: Client[F], F: Sync[F]) {
+  //TODO: for scoped authentication specialize the session type in KeystoneClient to be ScopedSession
+  /** Authenticates an identity and generates a token. Uses the password authentication method. Authorization is unscoped. */
+  def authenticateWithPassword(userId: String, password: String): F[KeystoneClient[F]] =
+    authenticate(Left(Credential(userId, password)))
+  /** Authenticates an identity and generates a token. Uses the password authentication method and scopes authorization to `scope`. */
+  def authenticateWithPassword(userId: String, password: String, scope: Scope): F[KeystoneClient[F]] =
+    authenticate(Left(Credential(userId, password)), Some(scope))
+
+  /** Authenticates an identity and generates a token. Uses the password authentication method. Authorization is unscoped. */
+  def authenticateWithPassword(username: String, password: String, domain: Domain): F[KeystoneClient[F]] =
+    authenticate(Left(Credential(username, password, domain)))
+  /** Authenticates an identity and generates a token. Uses the password authentication method and scopes authorization to `scope`. */
+  def authenticateWithPassword(username: String, password: String, domain: Domain, scope: Scope): F[KeystoneClient[F]] =
+    authenticate(Left(Credential(username, password, domain)), Some(scope))
 
   /**
     * Authenticates an identity and generates a token. Uses the token authentication method. Authorization is unscoped.
@@ -71,14 +92,18 @@ class UnauthenticatedKeystoneClient[F[_]](val baseUri: Uri)(implicit client: Cli
             token => "token" -> Json.obj("id" -> token.asJson)
           )
         )
-      ) ++ scope.map("scope" -> _.asJson))
+      ) ++ scope.map(s => "scope" -> s.asJson))
     )
 
   private def authenticate(method: Either[Credential, String], scope: Option[Scope] = None): F[KeystoneClient[F]] = {
-    val dsl = new Http4sClientDsl[F] with Methods
+    val dsl = new Http4sClientDsl[F] {}
     import dsl._
+    val jsonPrinter: Printer = Printer.noSpaces.copy(dropNullValues = true)
+    implicit def jsonEncoder[A: Encoder]: EntityEncoder[F, A] = circe.jsonEncoderWithPrinterOf(jsonPrinter)
+    implicit def jsonDecoder[A: Decoder]: EntityDecoder[F, A] = circe.accumulatingJsonOf
 
-    client.fetch[(Header, Session)](POST(authBody(method, scope), baseUri / "v3" / "auth" / "tokens")) {
+    val uri: Uri = if (baseUri.path.endsWith("v3") || baseUri.path.endsWith("v3/")) baseUri else baseUri / "v3"
+    client.fetch[(Header, Session)](POST( authBody(method, scope), uri / "auth" / "tokens")) {
       case Successful(response) =>
         response.as[Session].flatMap { session =>
           response.headers.get("X-Subject-Token".ci) match {
@@ -86,7 +111,7 @@ class UnauthenticatedKeystoneClient[F[_]](val baseUri: Uri)(implicit client: Cli
             case None => F.raiseError(new IllegalStateException("Could not get X-Subject-Token from authentication response."))
           }
         }
-      case failedResponse => F.raiseError(UnexpectedStatus(failedResponse.status))
+      case failedResponse => F.raiseError(new Throwable(s"unexpected HTTP status: ${failedResponse.status}"))
     }.map { case (authToken, session) => new KeystoneClient(baseUri, session, authToken) }
   }
 }

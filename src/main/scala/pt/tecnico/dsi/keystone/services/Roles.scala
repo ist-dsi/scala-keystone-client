@@ -3,11 +3,12 @@ package pt.tecnico.dsi.keystone.services
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import fs2.Stream
+import io.circe.Encoder
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Role, WithId}
 
-final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, Role](baseUri, "role", authToken)
+final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CrudService[F, Role](baseUri, "role", authToken)
   with UniqueWithinDomain[F, Role] {
 
   /**
@@ -21,7 +22,8 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends C
       "domain_ id" -> domainId,
     )))
 
-  override def create(role: Role): F[WithId[Role]] = createHandleConflict(role) { conflict =>
+
+  override def create(role: Role)(implicit encoder: Encoder[Role]): F[WithId[Role]] = createHandleConflict(role) { conflict =>
     role.domainId match {
       case Some(domainId) =>
         get(role.name, domainId).flatMap(existingRole => update(existingRole.id, role))

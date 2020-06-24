@@ -2,7 +2,7 @@ package pt.tecnico.dsi.keystone
 
 import pt.tecnico.dsi.keystone.models.{Endpoint, Interface, Region, Service}
 
-class EndpointSpec extends CRUDSpec[Endpoint]("endpoint", _.endpoints) {
+class EndpointSpec extends CrudSpec[Endpoint]("endpoint", _.endpoints) {
 
   def stub = for {
     client <- scopedClient

@@ -6,7 +6,8 @@ import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Endpoint, WithId}
 
-final class Endpoints[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, Endpoint](baseUri, "endpoint", authToken) {
+final class Endpoints[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CrudService[F, Endpoint](baseUri, "endpoint", authToken)
+  with EnableDisableEndpoints[F, Endpoint] {
   /**
     * @param interface filters the response by an interface.
     * @param serviceId filters the response by a domain ID.

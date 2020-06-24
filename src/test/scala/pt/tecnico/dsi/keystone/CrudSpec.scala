@@ -1,17 +1,16 @@
 package pt.tecnico.dsi.keystone
 
 import cats.effect.IO
+import io.circe.Codec
 import org.scalatest.Assertion
 import pt.tecnico.dsi.keystone.models.{Enabler, WithId}
-import pt.tecnico.dsi.keystone.services.CRUDService
+import pt.tecnico.dsi.keystone.services.{CrudService, EnableDisableEndpoints}
 
-abstract class CRUDSpec[T]
-  (val name: String, val service: KeystoneClient[IO] => CRUDService[IO, T], idempotent: Boolean = true)
-  (implicit ev: T <:< Enabler[T] = null) extends Utils {
-
+abstract class CrudSpec[T](val name: String, val service: KeystoneClient[IO] => CrudService[IO, T], idempotent: Boolean = true)
+                          (implicit val codec: Codec[T]) extends Utils {
   def stub: IO[T]
 
-  val withSubCreated: IO[(WithId[T], CRUDService[IO, T])] =
+  val withSubCreated: IO[(WithId[T], CrudService[IO, T])] =
     for {
       client <- scopedClient
       crudService = service(client)
@@ -57,27 +56,27 @@ abstract class CRUDSpec[T]
       }
     }
 
-    if (ev != null) {
+    /*if (ev != null) {
       s"enable a ${name}" in {
         withSubCreated.flatMap { case (createdStub, service) =>
-          val getEnabled = for {
-            _ <- service.enable(createdStub.id)
-            get <- service.get(createdStub.id)
-          } yield get.model.enabled
-          getEnabled.valueShouldIdempotentlyBe(true)
+          val enableDisableService = service.asInstanceOf[CrudService[IO, Enabler[T]] with EnableDisableEndpoints[IO, T]]
+          for {
+            _ <- enableDisableService.enable(createdStub.id).valueShouldIdempotentlyBe(())
+            get <- enableDisableService.get(createdStub.id)
+          } yield get.model.enabled shouldBe true
         }
       }
 
       s"disable a ${name}" in {
         withSubCreated.flatMap { case (createdStub, service) =>
-          val getDisabled = for {
-            _ <- service.disable(createdStub.id)
-            get <- service.get(createdStub.id)
-          } yield get.model.enabled
-          getDisabled.valueShouldIdempotentlyBe(false)
+          val enableDisableService = service.asInstanceOf[CrudService[IO, Enabler[T]] with EnableDisableEndpoints[IO, T]]
+          for {
+            _ <- enableDisableService.disable(createdStub.id).valueShouldIdempotentlyBe(())
+            get <- enableDisableService.get(createdStub.id)
+          } yield get.model.enabled shouldBe false
         }
       }
-    }
+    }*/
 
   }
 }

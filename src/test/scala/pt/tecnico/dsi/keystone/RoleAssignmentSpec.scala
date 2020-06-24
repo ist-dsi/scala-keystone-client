@@ -1,12 +1,12 @@
 package pt.tecnico.dsi.keystone
 
 import cats.effect.IO
+import io.circe.Codec
 import org.scalatest.BeforeAndAfterEach
 import pt.tecnico.dsi.keystone.models.{Group, Role, User}
-import pt.tecnico.dsi.keystone.services.{CRUDService, RoleAssignment, RoleAssignmentService}
+import pt.tecnico.dsi.keystone.services.{CrudService, RoleAssignment, RoleAssignmentService}
 
-trait RoleAssignmentSpec[T] extends BeforeAndAfterEach { this: CRUDSpec[T] =>
-
+trait RoleAssignmentSpec[T] extends BeforeAndAfterEach { this: CrudSpec[T] =>
   var roles = 0
   override def beforeEach(): Unit = {
     val cleanup = for {
@@ -18,8 +18,7 @@ trait RoleAssignmentSpec[T] extends BeforeAndAfterEach { this: CRUDSpec[T] =>
 
   def roleService: KeystoneClient[IO] => RoleAssignment[IO]
 
-  def test[R](assignToStub: R, assignToCrud: CRUDService[IO, R], roleAssignmentService: RoleAssignmentService[IO]): Unit = {
-
+  def test[R: Codec](assignToStub: R, assignToCrud: CrudService[IO, R], roleAssignmentService: RoleAssignmentService[IO]): Unit = {
     def createStubs: IO[(String, String, String)] = {
       roles += 1
       for {
@@ -27,7 +26,8 @@ trait RoleAssignmentSpec[T] extends BeforeAndAfterEach { this: CRUDSpec[T] =>
         objStub <- stub
         obj <- service(client).create(objStub)
         stub <- assignToCrud.create(assignToStub)
-        role <- client.roles.create(roleStub.copy(name = s"test-role#{$roles}"))
+        // We cannot use Some(domainId) because listing roles by default does not list roles from all domains
+        role <- client.roles.create(Role(s"test-role#{$roles}", Some("some-description"), domainId = None))
       } yield (obj.id, stub.id, role.id)
     }
 
@@ -78,28 +78,11 @@ trait RoleAssignmentSpec[T] extends BeforeAndAfterEach { this: CRUDSpec[T] =>
     }
   }
 
-  def groupStub = Group(
-    name = "test-group",
-    description = "test-desc",
-    domainId = "default"
-  )
-
-  def userStub = User(
-    name = "test-user",
-    domainId = "default"
-  )
-
-  def roleStub = Role(
-    name = "test-role2",
-    description = Some("some-description"),
-    domainId = None, // We cannot use Some(domainId) because listing roles by default does not list roles from all domains
-  )
-
   s"The ${name} service should handle role assignment" should {
     scopedClient.map { client =>
       val service = roleService(client)
-      behave like test(groupStub, client.groups, service.roles.groups)
-      behave like test(userStub, client.users, service.roles.users)
+      behave like test(Group("test-group", "description", domainId = "default"), client.groups, service.roles.groups)
+      behave like test(User("test-user", "default"), client.users, service.roles.users)
     }.unsafeRunSync()
   }
 }

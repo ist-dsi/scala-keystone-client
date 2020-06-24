@@ -3,13 +3,15 @@ package pt.tecnico.dsi.keystone.services
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import fs2.Stream
+import io.circe.Encoder
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Project, WithId}
 
-final class Projects[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, Project](baseUri, "project", authToken)
+final class Projects[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CrudService[F, Project](baseUri, "project", authToken)
   with UniqueWithinDomain[F, Project]
-  with RoleAssignment[F] {
+  with RoleAssignment[F]
+  with EnableDisableEndpoints[F, Project] {
 
   /**
     * @param name filters the response by a project name.
@@ -29,7 +31,8 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extend
       "parent_id" -> parentId,
     )))
 
-  override def create(project: Project): F[WithId[Project]] = createHandleConflict(project) { _ =>
+
+  override def create(project: Project)(implicit encoder: Encoder[Project]): F[WithId[Project]] = createHandleConflict(project) { _ =>
     get(project.name, project.domainId).flatMap(existingProject => update(existingProject.id, project))
   }
 }

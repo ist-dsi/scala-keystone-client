@@ -3,13 +3,16 @@ package pt.tecnico.dsi.keystone.services
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import fs2.Stream
+import io.circe.Encoder
 import io.circe.syntax._
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Group, Project, User, WithId}
+import org.http4s.Method.POST
 
-final class Users[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, User](baseUri, "user", authToken)
-  with UniqueWithinDomain[F, User] {
+final class Users[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CrudService[F, User](baseUri, "user", authToken)
+  with UniqueWithinDomain[F, User]
+  with EnableDisableEndpoints[F, User] {
 
   import dsl._
 
@@ -42,7 +45,7 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends C
     * @param id the user id
     * @return list of groups for a user
     */
-  def listGroups(id: String): Stream[F, Group] = genericList[Group]("groups", uri / id / "groups")
+  def listGroups(id: String): Stream[F, Group] = super.list[Group]("groups", uri / id / "groups", Query.empty)
 
   /**
     * Lists groups for a specified user
@@ -50,7 +53,7 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends C
     * @param id the user id
     * @return list of groups for a user
     */
-  def listProjects(id: String): Stream[F, Project] = genericList[Project]("projects", uri / id / "projects")
+  def listProjects(id: String): Stream[F, Project] = super.list[Project]("projects", uri / id / "projects", Query.empty)
 
   /**
     * @param id           the user identifier
@@ -65,7 +68,8 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends C
     client.expect(POST(body.asJson, uri / id / password, authToken))
   }
 
-  override def create(user: User): F[WithId[User]] = createHandleConflict(user) { _ =>
+
+  override def create(user: User)(implicit encoder: Encoder[User]): F[WithId[User]] = createHandleConflict(user) { _ =>
     // If we got a conflict then a user with this name must already exist.
     get(user.name, user.domainId).flatMap(existingUser => update(existingUser.id, user))
   }

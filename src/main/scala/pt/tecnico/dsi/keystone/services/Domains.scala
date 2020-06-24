@@ -3,13 +3,16 @@ package pt.tecnico.dsi.keystone.services
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import fs2.Stream
+import io.circe.Encoder
+import org.http4s.Method.DELETE
 import org.http4s.Status.{Forbidden, NotFound, Successful}
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.keystone.models.{Domain, WithId}
 
-final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CRUDService[F, Domain](baseUri, "domain", authToken)
-  with RoleAssignment[F] {
+final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CrudService[F, Domain](baseUri, "domain", authToken)
+  with RoleAssignment[F]
+  with EnableDisableEndpoints[F, Domain] {
   import dsl._
 
   /**
@@ -34,7 +37,7 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends
     list(Query.fromPairs("name" -> name)).compile.lastOrError
   }
 
-  override def create(domain: Domain): F[WithId[Domain]] = createHandleConflict(domain) { _ =>
+  override def create(domain: Domain)(implicit encoder: Encoder[Domain]): F[WithId[Domain]] = createHandleConflict(domain) { _ =>
     getByName(domain.name).flatMap(existingDomain => update(existingDomain.id, domain))
   }
 

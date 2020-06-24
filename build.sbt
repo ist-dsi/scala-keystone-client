@@ -41,14 +41,14 @@ scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
 // ======================================================================================================================
 // ==== Dependencies ====================================================================================================
 // ======================================================================================================================
-libraryDependencies ++= Seq("blaze-client", "dsl", "circe").map { module =>
+libraryDependencies ++= Seq("blaze-client", "circe").map { module =>
   "org.http4s"      %% s"http4s-$module" % "0.21.4"
 } ++ Seq(
   "io.circe"        %% "circe-derivation"  % "0.13.0-M4",
   "io.circe"        %% "circe-parser"      % "0.13.0",
-  "com.beachape"    %% "enumeratum-circe"  % "1.6.0",
+  "com.beachape"    %% "enumeratum-circe"  % "1.6.1",
   "ch.qos.logback"  %  "logback-classic"   % "1.2.3" % Test,
-  "org.scalatest"   %% "scalatest"         % "3.1.1" % Test,
+  "org.scalatest"   %% "scalatest"         % "3.2.0" % Test,
 )
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
@@ -73,7 +73,8 @@ Test / testGrouping := {
 
 // http://www.scalatest.org/user_guide/using_the_runner
 //   -o[configs...] - causes test results to be written to the standard output. The D configs shows all durations.
-testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oD")
+// -F shows the complete stack trace in case of exception thrown.
+testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 
 // ======================================================================================================================
 // ==== Scaladoc ========================================================================================================
