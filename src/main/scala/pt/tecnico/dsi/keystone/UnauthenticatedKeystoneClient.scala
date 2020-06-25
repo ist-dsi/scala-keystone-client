@@ -35,7 +35,6 @@ object UnauthenticatedKeystoneClient {
   case class Credential(id: Option[String], name: Option[String], password: String, domain: Option[Domain])
 }
 class UnauthenticatedKeystoneClient[F[_]](baseUri: Uri)(implicit client: Client[F], F: Sync[F]) {
-  //TODO: for scoped authentication specialize the session type in KeystoneClient to be ScopedSession
   /** Authenticates an identity and generates a token. Uses the password authentication method. Authorization is unscoped. */
   def authenticateWithPassword(userId: String, password: String): F[KeystoneClient[F]] =
     authenticate(Left(Credential(userId, password)))

@@ -5,14 +5,14 @@ import pt.tecnico.dsi.keystone.models.Role
 
 class RoleSpec extends CrudSpec[Role]("role", _.roles) {
   def stub = IO.pure(Role(
-    name = "test-role2",
+    name = "role-without-domain",
     description = Some("some-description"),
     domainId = None, // We cannot use Some(domainId) because listing roles by default does not list roles from all domains
   ))
 
   def stubWithDomain(client: KeystoneClient[IO]) = IO.pure {
     Role(
-      name = "test-role2",
+      name = "role-with-domain",
       description = Some("some-description"),
       domainId = Some(client.session.user.domainId),
     )

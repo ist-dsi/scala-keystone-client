@@ -45,15 +45,18 @@ case object Scope extends Enum[Scope] {
     systemOpt orElse domainOpt orElse projectOpt
   }
 
-  implicit val decoderSystem: Decoder[System] = deriveDecoder[System].at("system")
-  implicit val decoderDomain: Decoder[Domain] = deriveDecoder[Domain].at("domain")
-  implicit val decoderProject: Decoder[Project] = deriveDecoder[Project].at("project")
+  implicit val decoderSystem: Decoder[System] = deriveDecoder[System]
+  implicit val decoderDomain: Decoder[Domain] = deriveDecoder[Domain]
+  implicit val decoderProject: Decoder[Project] = deriveDecoder[Project]
   implicit val decoder: Decoder[Scope] = { cursor: HCursor =>
     // If we cannot decode to a System|Domain|Project Scope then it is the Unscoped by definition
-    decoderSystem(cursor) orElse decoderDomain(cursor) orElse decoderProject(cursor) orElse Right(Unscoped)
+    decoderSystem.at("system")(cursor)
+      .orElse(decoderDomain.at("domain")(cursor))
+      .orElse(decoderProject.at("project")(cursor))
+      .orElse(Right(Unscoped))
   }
 
-  implicit val encoderSystem: Encoder[System] = (system: System) => deriveEncoder[System].apply(system)
+  implicit val encoderSystem: Encoder[System] = deriveEncoder[System]
   implicit val encoderDomain: Encoder[Domain] = (domain: Domain) => Json.obj(
     "id" -> Option(domain.id).asJson,
     "name" -> Option(domain.name).asJson
