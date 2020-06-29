@@ -10,7 +10,7 @@ trait EnableDisableSpec[T <: Enabler[T]] { self: CrudSpec[T] =>
       withSubCreated.flatMap { case (createdStub, service) =>
         val enableDisableService = service.asInstanceOf[CrudService[IO, Enabler[T]] with EnableDisableEndpoints[IO, T]]
         for {
-          _ <- enableDisableService.enable(createdStub.id).valueShouldIdempotentlyBe(())
+          _ <- enableDisableService.enable(createdStub.id).idempotently(_ shouldBe ())
           get <- enableDisableService.get(createdStub.id)
         } yield get.model.enabled shouldBe true
       }
@@ -20,7 +20,7 @@ trait EnableDisableSpec[T <: Enabler[T]] { self: CrudSpec[T] =>
       withSubCreated.flatMap { case (createdStub, service) =>
         val enableDisableService = service.asInstanceOf[CrudService[IO, Enabler[T]] with EnableDisableEndpoints[IO, T]]
         for {
-          _ <- enableDisableService.disable(createdStub.id).valueShouldIdempotentlyBe(())
+          _ <- enableDisableService.disable(createdStub.id).idempotently(_ shouldBe ())
           get <- enableDisableService.get(createdStub.id)
         } yield get.model.enabled shouldBe false
       }

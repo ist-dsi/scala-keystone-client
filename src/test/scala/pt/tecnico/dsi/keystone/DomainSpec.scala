@@ -1,7 +1,7 @@
 package pt.tecnico.dsi.keystone
 
 import cats.effect.IO
-import pt.tecnico.dsi.keystone.models.{Domain, Group, Role, WithId}
+import pt.tecnico.dsi.keystone.models.Domain
 
 class DomainSpec extends CrudSpec[Domain]("domain", _.domains) with RoleAssignmentSpec[Domain] with EnableDisableSpec[Domain] {
   def roleService = _.domains
@@ -16,7 +16,7 @@ class DomainSpec extends CrudSpec[Domain]("domain", _.domains) with RoleAssignme
         client <- scopedClient
         expected <- stub
         obj <- client.domains.create(expected.copy(enabled = true))
-        result <- client.domains.delete(obj.id, force = true).valueShouldIdempotentlyBe(())
+        result <- client.domains.delete(obj.id, force = true).idempotently(_ shouldBe ())
       } yield result
     }
   }

@@ -34,13 +34,13 @@ abstract class CrudSpec[T](val name: String, val service: KeystoneClient[IO] => 
 
     s"get ${name}s" in {
       withSubCreated.flatMap { case (createdStub, service) =>
-        service.get(createdStub.id).valueShouldIdempotentlyBe(createdStub)
+        service.get(createdStub.id).idempotently(_ shouldBe createdStub)
       }
     }
 
     s"delete a ${name}" in {
       withSubCreated.flatMap { case (createdStub, service) =>
-        service.delete(createdStub.id).valueShouldIdempotentlyBe(())
+        service.get(createdStub.id).idempotently(_ shouldBe ())
       }
     }
   }

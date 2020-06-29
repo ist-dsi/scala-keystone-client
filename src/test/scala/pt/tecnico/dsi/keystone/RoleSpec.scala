@@ -23,7 +23,7 @@ class RoleSpec extends CrudSpec[Role]("role", _.roles) {
       for {
         expected <- stubWithDomain(client)
         actual <- client.roles.create(expected)
-      } yield actual.model should be (expected)
+      } yield actual.model shouldBe expected
     }
 
     s"list ${name}s in a domain" in {
@@ -40,7 +40,7 @@ class RoleSpec extends CrudSpec[Role]("role", _.roles) {
         client <- scopedClient
         expected <- stubWithDomain(client)
         obj <- client.roles.create(expected)
-        isIdempotent <- client.roles.get(expected.name, expected.domainId.get).valueShouldIdempotentlyBe(obj)
+        isIdempotent <- client.roles.get(expected.name, expected.domainId.get).idempotently(_ shouldBe obj)
       } yield isIdempotent
     }
   }

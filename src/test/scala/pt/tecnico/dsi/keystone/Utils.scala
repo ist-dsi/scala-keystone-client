@@ -41,10 +41,6 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   val scopedClient: IO[KeystoneClient[IO]] = KeystoneClient.fromEnvironment(dockerVars)
 
   implicit class RichIO[T](io: IO[T]) {
-    def value(test: T => Assertion): IO[Assertion] = io.map(test)
-
-    def valueShouldBe(v: T): IO[Assertion] = value(_ shouldBe v)
-
     def idempotently(test: T => Assertion, repetitions: Int = 3): IO[Assertion] = {
       require(repetitions >= 2, "To test for idempotency at least 2 repetitions must be made")
       io.flatMap { firstResult =>
@@ -73,8 +69,6 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
         }
       }
     }
-
-    def valueShouldIdempotentlyBe(value: T): IO[Assertion] = idempotently(_ shouldBe value)
   }
 
   import scala.language.implicitConversions

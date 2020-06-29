@@ -32,7 +32,7 @@ trait RoleAssignmentSpec[T] { this: CrudSpec[T] =>
     s"assign role to a ${assignToCrud.name}" in {
       createStubs.flatMap { case (objId, stubId, roleId) =>
         for {
-         _ <- roleAssignmentService.assign(objId, stubId, roleId).valueShouldIdempotentlyBe(())
+         _ <- roleAssignmentService.assign(objId, stubId, roleId).idempotently(_ shouldBe ())
          check <- roleAssignmentService.check(objId, stubId, roleId)
         } yield check shouldBe true
       }
@@ -41,7 +41,7 @@ trait RoleAssignmentSpec[T] { this: CrudSpec[T] =>
     s"delete ${assignToCrud.name} role assignment" in {
       createStubs.flatMap { case (objId, stubId, roleId) =>
         for {
-          _ <- roleAssignmentService.delete(objId, stubId, roleId).valueShouldIdempotentlyBe(())
+          _ <- roleAssignmentService.delete(objId, stubId, roleId).idempotently(_ shouldBe ())
           check <- roleAssignmentService.check(objId, stubId, roleId)
         } yield check shouldBe false
       }
@@ -51,7 +51,7 @@ trait RoleAssignmentSpec[T] { this: CrudSpec[T] =>
       createStubs.flatMap { case (objId, stubId, roleId) =>
         for {
           _ <- roleAssignmentService.assign(objId, stubId, roleId)
-          idempotent <- roleAssignmentService.check(objId, stubId, roleId).valueShouldIdempotentlyBe(true)
+          idempotent <- roleAssignmentService.check(objId, stubId, roleId).idempotently(_ shouldBe true)
         } yield idempotent
       }
     }
@@ -60,7 +60,7 @@ trait RoleAssignmentSpec[T] { this: CrudSpec[T] =>
       createStubs.flatMap { case (objId, stubId, roleId) =>
         for {
           _ <- roleAssignmentService.delete(objId, stubId, roleId)
-          idempotent <- roleAssignmentService.check(objId, stubId, roleId).valueShouldIdempotentlyBe(false)
+          idempotent <- roleAssignmentService.check(objId, stubId, roleId).idempotently(_ shouldBe false)
         } yield idempotent
       }
     }
