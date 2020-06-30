@@ -5,12 +5,13 @@ name := "scala-keystone-client"
 // ==== Compile Options =================================================================================================
 // ======================================================================================================================
 javacOptions ++= Seq("-Xlint", "-encoding", "UTF-8", "-Dfile.encoding=utf-8")
-scalaVersion := "2.13.2"
+scalaVersion := "2.13.3"
 
 scalacOptions ++= Seq(
   "-encoding", "utf-8",            // Specify character encoding used by source files.
   "-explaintypes",                 // Explain type errors in more detail.
   "-feature",                      // Emit warning and location for usages of features that should be imported explicitly.
+  "-language:higherKinds",         // Just to help Intellij, otherwise he keeps asking to import/enable the higherKinds flag
   "-Ybackend-parallelism", "8",    // Maximum worker threads for backend.
   "-Ybackend-worker-queue", "10",  // Backend threads worker queue size.
   "-Ymacro-annotations",           // Enable support for macro annotations, formerly in macro paradise.
@@ -42,15 +43,18 @@ scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
 // ==== Dependencies ====================================================================================================
 // ======================================================================================================================
 libraryDependencies ++= Seq("blaze-client", "circe").map { module =>
-  "org.http4s"      %% s"http4s-$module" % "0.21.4"
+  "org.http4s"      %% s"http4s-$module" % "0.21.6"
 } ++ Seq(
   "io.circe"        %% "circe-derivation"  % "0.13.0-M4",
   "io.circe"        %% "circe-parser"      % "0.13.0",
   "com.beachape"    %% "enumeratum-circe"  % "1.6.1",
+  "pt.tecnico.dsi"  %% "scala-openstack-common-clients" % "0.1.0-SNAPSHOT",
   "ch.qos.logback"  %  "logback-classic"   % "1.2.3" % Test,
   "org.scalatest"   %% "scalatest"         % "3.2.0" % Test,
 )
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
+
+resolvers += Resolver.sonatypeRepo("snapshots")
 
 //coverageEnabled := true
 
@@ -111,7 +115,6 @@ createLatestSymlink := {
   if (!Files.isSymbolicLink(path)) Files.createSymbolicLink(path, new File(latestReleasedVersion.value).toPath)
 }
 ghpagesPushSite := ghpagesPushSite.dependsOn(createLatestSymlink).value
-ghpagesBranch := "pages"
 ghpagesNoJekyll := false
 envVars in ghpagesPushSite := Map("SBT_GHPAGES_COMMIT_MESSAGE" -> s"Add Scaladocs for version ${latestReleasedVersion.value}")
 

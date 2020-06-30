@@ -1,10 +1,10 @@
-# scala-keystoneclient [![license](http://img.shields.io/:license-MIT-blue.svg)](LICENSE)
-[![Scaladoc](http://javadoc-badge.appspot.com/pt.tecnico.dsi/scala-keystoneclient_2.12.svg?label=scaladoc&style=plastic&maxAge=604800)](https://ist-dsi.github.io/scala-keystoneclient/latest/api/pt/tecnico/dsi/scala-keystoneclient/index.html)
-[![Latest version](https://index.scala-lang.org/ist-dsi/scala-keystoneclient/scala-keystoneclient/latest.svg)](https://index.scala-lang.org/ist-dsi/scala-keystoneclient/scala-keystoneclient)
+# scala-keystone-client [![license](http://img.shields.io/:license-MIT-blue.svg)](LICENSE)
+[![Scaladoc](http://javadoc-badge.appspot.com/pt.tecnico.dsi/scala-keystone-client_2.12.svg?label=scaladoc&style=plastic&maxAge=604800)](https://ist-dsi.github.io/scala-keystone-client/api/latest/pt/tecnico/dsi/openstack/keystone/index.html)
+[![Latest version](https://index.scala-lang.org/ist-dsi/scala-keystone-client/scala-keystone-client/latest.svg)](https://index.scala-lang.org/ist-dsi/scala-keystone-client/scala-keystone-client)
 
-[![Build Status](https://travis-ci.org/ist-dsi/scala-keystoneclient.svg?branch=master&style=plastic&maxAge=604800)](https://travis-ci.org/ist-dsi/scala-keystoneclient)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/)](https://www.codacy.com/app/IST-DSI/scala-keystoneclient?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ist-dsi/scala-vault&amp;utm_campaign=Badge_Grade)
-[![BCH compliance](https://bettercodehub.com/edge/badge/ist-dsi/scala-keystoneclient)](https://bettercodehub.com/results/ist-dsi/scala-keystoneclient)
+[![Build Status](https://travis-ci.org/ist-dsi/scala-keystone-client.svg?branch=master&style=plastic&maxAge=604800)](https://travis-ci.org/ist-dsi/scala-keystone-client)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/)](https://www.codacy.com/app/IST-DSI/scala-keystone-client?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ist-dsi/scala-vault&amp;utm_campaign=Badge_Grade)
+[![BCH compliance](https://bettercodehub.com/edge/badge/ist-dsi/scala-keystone-client)](https://bettercodehub.com/results/ist-dsi/scala-keystone-client)
 
 A pure functional Scala client for Openstack Keystone implemented using Http4s client.
 
@@ -28,7 +28,7 @@ Unsupported endpoints (we accept PRs :)):
 - [Project Tags](https://docs.openstack.org/api-ref/identity/v3/#project-tags)
 - [Unified Limits](https://docs.openstack.org/api-ref/identity/v3/#unified-limits)
 
-[Latest scaladoc documentation](https://ist-dsi.github.io/scala-keystoneclient/latest/api/pt/tecnico/dsi/scala-keystoneclient/index.html)
+[Latest scaladoc documentation](https://ist-dsi.github.io/scala-keystone-client/api/latest/pt/tecnico/dsi/openstack/keystone/index.html)
 
 ## Install
 Add the following dependency to your `build.sbt`:
@@ -42,7 +42,7 @@ We use [semantic versioning](http://semver.org).
 import scala.concurrent.ExecutionContext.Implicits.global
 import cats.effect._
 import org.http4s.client.blaze.BlazeClientBuilder
-import pt.tecnico.dsi.keystone.KeystoneClient
+import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 
 object Example extends IOApp {
   override def run(args: List[String]): IO[ExitCode] = {
