@@ -5,6 +5,7 @@ import cats.syntax.flatMap._
 import fs2.Stream
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
+import org.http4s.Status.Conflict
 import pt.tecnico.dsi.openstack.common.models.WithId
 import pt.tecnico.dsi.openstack.keystone.models.Role
 
@@ -23,7 +24,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends C
     )))
 
 
-  override def create(role: Role): F[WithId[Role]] = createHandleConflict(role) { conflict =>
+  override def create(role: Role): F[WithId[Role]] = createHandleConflict(role) {
     role.domainId match {
       case Some(domainId) =>
         get(role.name, domainId).flatMap(existingRole => update(existingRole.id, role))
@@ -33,7 +34,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends C
           if (roles.lengthIs == 1) {
             update(roles.head.id, role)
           } else {
-            implicitly[Sync[F]].raiseError(UnexpectedStatus(conflict.status))
+            implicitly[Sync[F]].raiseError(UnexpectedStatus(Conflict))
           }
         }
     }

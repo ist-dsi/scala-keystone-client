@@ -37,7 +37,7 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends
     list(Query.fromPairs("name" -> name)).compile.lastOrError
   }
 
-  override def create(domain: Domain): F[WithId[Domain]] = createHandleConflict(domain) { _ =>
+  override def create(domain: Domain): F[WithId[Domain]] = createHandleConflict(domain) {
     getByName(domain.name).flatMap(existingDomain => update(existingDomain.id, domain))
   }
 
