@@ -24,7 +24,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends C
     )))
 
 
-  override def create(role: Role): F[WithId[Role]] = createHandleConflict(role) {
+  override def create(role: Role, extraHeaders: Header*): F[WithId[Role]] = createHandleConflict(role) {
     role.domainId match {
       case Some(domainId) =>
         get(role.name, domainId).flatMap(existingRole => update(existingRole.id, role))

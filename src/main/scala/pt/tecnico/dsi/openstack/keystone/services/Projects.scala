@@ -32,7 +32,7 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extend
     )))
 
 
-  override def create(project: Project): F[WithId[Project]] = createHandleConflict(project) {
+  override def create(project: Project, extraHeaders: Header*): F[WithId[Project]] = createHandleConflict(project) {
     get(project.name, project.domainId).flatMap(existingProject => update(existingProject.id, project))
   }
 }

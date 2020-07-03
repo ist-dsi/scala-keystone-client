@@ -56,8 +56,6 @@ addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
 resolvers += Resolver.sonatypeRepo("snapshots")
 
-coverageEnabled := true
-
 // ======================================================================================================================
 // ==== Testing =========================================================================================================
 // ======================================================================================================================
@@ -79,6 +77,8 @@ Test / testGrouping := {
 //   -o[configs...] - causes test results to be written to the standard output. The D configs shows all durations.
 // -F shows the complete stack trace in case of exception thrown.
 testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
+
+coverageEnabled := true
 
 // ======================================================================================================================
 // ==== Scaladoc ========================================================================================================

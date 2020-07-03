@@ -21,7 +21,8 @@ final class Credentials[F[_]: Sync: Client](baseUri: Uri, authToken: Header) ext
       "type" -> `type`,
     )))
 
-  override def create(credential: Credential): F[WithId[Credential]] = super.createHandleConflict(credential) {
+
+  override def create(credential: Credential, extraHeaders: Header*): F[WithId[Credential]] = super.createHandleConflict(credential) {
     list(userId = Some(credential.userId), `type` = Some("ec2"))
       .filter(c => c.projectId == credential.projectId).compile.lastOrError
       .flatMap(existingCredential => update(existingCredential.id, credential))
