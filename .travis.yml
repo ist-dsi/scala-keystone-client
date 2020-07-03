@@ -2,6 +2,8 @@ language: scala
 
 scala:
   - 2.13.1
+  - 2.13.2
+  - 2.13.3
 
 services: docker
 
@@ -30,6 +32,6 @@ script:
   - sbt -Dsbt.color=true compile
   - sbt -Dsbt.color=true coverage test
 
-#after_success:
-#  - sbt coverageReport codacyCoverage
-#  - bash <(curl -s https://codecov.io/bash)
+after_success:
+  - sbt coverageReport codacyCoverage
+  # - bash <(curl -s https://codecov.io/bash)

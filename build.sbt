@@ -56,7 +56,7 @@ addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
 resolvers += Resolver.sonatypeRepo("snapshots")
 
-//coverageEnabled := true
+coverageEnabled := true
 
 // ======================================================================================================================
 // ==== Testing =========================================================================================================
