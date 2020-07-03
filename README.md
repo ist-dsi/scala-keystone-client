@@ -3,7 +3,7 @@
 [![Latest version](https://index.scala-lang.org/ist-dsi/scala-keystone-client/scala-keystone-client/latest.svg)](https://index.scala-lang.org/ist-dsi/scala-keystone-client/scala-keystone-client)
 
 [![Build Status](https://travis-ci.org/ist-dsi/scala-keystone-client.svg?branch=master&style=plastic&maxAge=604800)](https://travis-ci.org/ist-dsi/scala-keystone-client)
-
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/1f752f2ed2d14ef5b301a55c772a32a4)](https://www.codacy.com/gh/ist-dsi/scala-keystone-client?utm_source=github.com&utm_medium=referral&utm_content=ist-dsi/scala-keystone-client&utm_campaign=Badge_Coverage)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/1f752f2ed2d14ef5b301a55c772a32a4)](https://www.codacy.com/gh/ist-dsi/scala-keystone-client?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ist-dsi/scala-keystone-client&amp;utm_campaign=Badge_Grade)
 [![BCH compliance](https://bettercodehub.com/edge/badge/ist-dsi/scala-keystone-client)](https://bettercodehub.com/results/ist-dsi/scala-keystone-client)
 

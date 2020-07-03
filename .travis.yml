@@ -1,14 +1,11 @@
 language: scala
 
 scala:
-  - 2.13.1
-  - 2.13.2
   - 2.13.3
 
 services: docker
 
 jdk:
-  - openjdk8
   - openjdk11
 
 before_cache:
