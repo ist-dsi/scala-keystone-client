@@ -144,6 +144,8 @@ releaseProcess := Seq[ReleaseStep](
   releaseStepTask(dependencyUpdates),
   checkSnapshotDependencies,
   inquireVersions,
+  // Ensure we do not release artifacts with coverage instrumentation
+  releaseStepCommand("coverageOff"),
   runClean,
   releaseStepTask(Compile / doc),
   releaseStepTask(Test / test),
