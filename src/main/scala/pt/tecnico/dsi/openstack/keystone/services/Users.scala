@@ -69,7 +69,7 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends C
   }
 
 
-  override def create(user: User, extraHeaders: Header*): F[WithId[User]] = createHandleConflict(user) {
+  override def create(user: User, extraHeaders: Header*): F[WithId[User]] = createHandleConflict(user, extraHeaders:_*) {
     // If we got a conflict then a user with this name must already exist.
     get(user.name, user.domainId).flatMap(existingUser => update(existingUser.id, user))
   }

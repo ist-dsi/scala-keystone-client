@@ -25,7 +25,7 @@ final class Groups[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends 
     )))
 
 
-  override def create(group: Group, extraHeaders: Header*): F[WithId[Group]] = createHandleConflict(group) {
+  override def create(group: Group, extraHeaders: Header*): F[WithId[Group]] = createHandleConflict(group, extraHeaders:_*) {
     get(group.name, group.domainId).flatMap(existingGroup => update(existingGroup.id, group))
   }
 

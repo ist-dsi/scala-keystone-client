@@ -78,7 +78,7 @@ Test / testGrouping := {
 // -F shows the complete stack trace in case of exception thrown.
 testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 
-coverageEnabled := true
+// coverageEnabled := true
 
 // ======================================================================================================================
 // ==== Scaladoc ========================================================================================================
@@ -145,7 +145,7 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   // Ensure we do not release artifacts with coverage instrumentation
-  releaseStepCommand("coverageOff"),
+  // releaseStepCommand("coverageOff"),
   runClean,
   releaseStepTask(Compile / doc),
   releaseStepTask(Test / test),
