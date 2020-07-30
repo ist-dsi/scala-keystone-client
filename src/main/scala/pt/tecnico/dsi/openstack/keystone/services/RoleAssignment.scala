@@ -7,11 +7,10 @@ import org.http4s.Method.{HEAD, PUT}
 import org.http4s.Status.{NotFound, Successful}
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
-import pt.tecnico.dsi.openstack.common.models.WithId
-import pt.tecnico.dsi.openstack.common.services.Service
+import pt.tecnico.dsi.openstack.common.services.{CrudService, Service}
 import pt.tecnico.dsi.openstack.keystone.models.Role
 
-trait RoleAssignment[F[_]] { this: CrudService[F, _] =>
+trait RoleAssignment[F[_]] { this: CrudService[F, _, _, _] =>
   object roles {
     /**
       * Role assignments for users on this context.
@@ -33,8 +32,8 @@ class RoleAssignmentService[F[_]: Sync: Client](val uri: Uri, target: String, au
     * @param targetId the target's id
     * @return roles assigned
     */
-  def list(id: String, targetId: String): Stream[F, WithId[Role]] =
-    super.list[WithId[Role]]("roles", uri / id / target / targetId / "roles", Query.empty)
+  def list(id: String, targetId: String): Stream[F, Role] =
+    super.list[Role]("roles", uri / id / target / targetId / "roles", Query.empty)
 
   /**
     * Assigns a role to a target on a certain context

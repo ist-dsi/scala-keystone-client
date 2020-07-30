@@ -1,18 +1,11 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
-import cats.syntax.flatMap._
-import cats.syntax.functor._
-import pt.tecnico.dsi.openstack.keystone.models.Enabler
+import pt.tecnico.dsi.openstack.common.models.Identifiable
+import pt.tecnico.dsi.openstack.common.services.CrudService
 
-trait EnableDisableEndpoints[F[_], T <: Enabler[T]] { self: CrudService[F, T] =>
+trait EnableDisableEndpoints[F[_], T <: Identifiable] { self: CrudService[F, T, _, _] =>
+  protected def updateEnable(id: String, enabled: Boolean) : F[T]
 
-  def disable(id: String): F[Unit] = updateEnable(id, value = false)
-  def enable(id: String): F[Unit] = updateEnable(id, value = true)
-
-  private def updateEnable(id: String, value: Boolean) : F[Unit] = {
-    for {
-      obj <- get(id)
-      _ <- update(obj.id, obj.withEnabled(value))
-    } yield ()
-  }
+  def disable(id: String): F[T] = updateEnable(id, enabled = false)
+  def enable(id: String): F[T] = updateEnable(id, enabled = true)
 }

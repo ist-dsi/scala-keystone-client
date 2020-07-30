@@ -6,10 +6,11 @@ import fs2.Stream
 import org.http4s.Method.{HEAD, PUT}
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
-import pt.tecnico.dsi.openstack.common.models.WithId
-import pt.tecnico.dsi.openstack.keystone.models.{Group, User}
+import pt.tecnico.dsi.openstack.common.services.CrudService
+import pt.tecnico.dsi.openstack.keystone.models.{Group, Session, User}
 
-final class Groups[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CrudService[F, Group](baseUri, "group", authToken)
+final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session, authToken: Header)
+  extends CrudService[F, Group, Group.Create, Group.Update](baseUri, "group", authToken)
   with UniqueWithinDomain[F, Group] {
   import dsl._
 
@@ -18,15 +19,23 @@ final class Groups[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends 
     * @param domainId filters the response by a domain ID.
     * @return a stream of groups filtered by the various parameters.
     */
-  def list(name: Option[String] = None, domainId: Option[String] = None): Stream[F, WithId[Group]] =
+  def list(name: Option[String] = None, domainId: Option[String] = None): Stream[F, Group] =
     list(Query.fromVector(Vector(
       "name" -> name,
       "domain_ id" -> domainId,
     )))
 
-
-  override def create(group: Group, extraHeaders: Header*): F[WithId[Group]] = createHandleConflict(group, extraHeaders:_*) {
-    get(group.name, group.domainId).flatMap(existingGroup => update(existingGroup.id, group))
+  override def create(create: Group.Create, extraHeaders: Header*): F[Group] = createHandleConflict(create, extraHeaders:_*) {
+    val domainId = create.domainId.getOrElse(domainIdFromScope(session.scope))
+    // We got a Conflict so we must be able to find the existing Group
+    get(create.name, domainId).flatMap { existingGroup =>
+      // Description is the only field that can be different
+      if (existingGroup.description != create.description) {
+        update(existingGroup.id, Group.Update(description = create.description), extraHeaders:_*)
+      } else {
+        Sync[F].pure(existingGroup)
+      }
+    }
   }
 
   //TODO: passwordExpiresAt should not be a string
@@ -36,9 +45,9 @@ final class Groups[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends 
     * @param id the group id.
     * @param passwordExpiresAt
     */
-  def listUsers(id: String, passwordExpiresAt: Option[String] = None): Stream[F, WithId[User]] = {
+  def listUsers(id: String, passwordExpiresAt: Option[String] = None): Stream[F, User] = {
     val query = passwordExpiresAt.fold(Query.empty)(value => Query.fromPairs("password_expires_at" -> value))
-    super.list[WithId[User]]("users", uri / id / "users", query)
+    super.list[User]("users", uri / id / "users", query)
   }
 
   def addUser(id: String, userId: String): F[Unit] = client.expect(PUT(uri / id / "users" / userId))

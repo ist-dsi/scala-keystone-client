@@ -5,7 +5,6 @@ import fs2.Stream
 import org.http4s.Method.{DELETE, GET, HEAD}
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
-import pt.tecnico.dsi.openstack.common.models.WithId
 import pt.tecnico.dsi.openstack.common.services.Service
 import pt.tecnico.dsi.openstack.keystone.models.Scope.System
 import pt.tecnico.dsi.openstack.keystone.models.{CatalogEntry, Domain, Project, Session}
@@ -30,9 +29,9 @@ final class Authentication[F[_]: Sync: Client](baseUri: Uri, authToken: Header) 
   def serviceCatalog: F[List[CatalogEntry]] = super.list[CatalogEntry]("catalog", uri / "catalog", Query.empty).compile.toList
 
   /** Get available project scopes. */
-  def projectScopes: Stream[F, WithId[Project]] = super.list[WithId[Project]]("projects", uri / "projects", Query.empty)
+  def projectScopes: Stream[F, Project] = super.list[Project]("projects", uri / "projects", Query.empty)
   /** Get available domain scopes */
-  def domainScopes: Stream[F, WithId[Domain]] = super.list[WithId[Domain]]("domains", uri / "domains", Query.empty)
+  def domainScopes: Stream[F, Domain] = super.list[Domain]("domains", uri / "domains", Query.empty)
   /** Get available system scopes */
   def systemScopes: F[System] = client.expect(GET(uri / "system"))
 }

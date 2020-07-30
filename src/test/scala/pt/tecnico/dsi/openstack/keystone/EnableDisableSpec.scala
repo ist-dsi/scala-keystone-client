@@ -1,29 +1,23 @@
 package pt.tecnico.dsi.openstack.keystone
 
 import cats.effect.IO
-import pt.tecnico.dsi.openstack.keystone.models.Enabler
-import pt.tecnico.dsi.openstack.keystone.services.{CrudService, EnableDisableEndpoints}
+import org.scalatest.Assertion
+import pt.tecnico.dsi.openstack.common.models.Identifiable
+import pt.tecnico.dsi.openstack.common.services.CrudService
+import pt.tecnico.dsi.openstack.keystone.services.EnableDisableEndpoints
 
-trait EnableDisableSpec[T <: Enabler[T]] { self: CrudSpec[T] =>
+trait EnableDisableSpec[T <: Identifiable] { self: CrudSpec[T, _, _] =>
+  lazy val enableDisableService = service.asInstanceOf[CrudService[IO, T, _, _] with EnableDisableEndpoints[IO, T]]
+
+  def getEnabled(model: T): Boolean
+
   s"The ${name} service" should {
-    s"enable a ${name}" in {
-      withSubCreated.flatMap { case (createdStub, service) =>
-        val enableDisableService = service.asInstanceOf[CrudService[IO, Enabler[T]] with EnableDisableEndpoints[IO, T]]
-        for {
-          _ <- enableDisableService.enable(createdStub.id).idempotently(_ shouldBe ())
-          get <- enableDisableService.get(createdStub.id)
-        } yield get.model.enabled shouldBe true
-      }
+    s"enable a ${name}" in resource.use[IO, Assertion] { model =>
+      enableDisableService.enable(model.id).idempotently(getEnabled(_) shouldBe true)
     }
 
-    s"disable a ${name}" in {
-      withSubCreated.flatMap { case (createdStub, service) =>
-        val enableDisableService = service.asInstanceOf[CrudService[IO, Enabler[T]] with EnableDisableEndpoints[IO, T]]
-        for {
-          _ <- enableDisableService.disable(createdStub.id).idempotently(_ shouldBe ())
-          get <- enableDisableService.get(createdStub.id)
-        } yield get.model.enabled shouldBe false
-      }
+    s"disable a ${name}" in resource.use[IO, Assertion] { model =>
+      enableDisableService.disable(model.id).idempotently(getEnabled(_) shouldBe false)
     }
   }
 }

@@ -6,10 +6,11 @@ import fs2.Stream
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import org.http4s.Status.Conflict
-import pt.tecnico.dsi.openstack.common.models.WithId
+import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.Role
 
-final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CrudService[F, Role](baseUri, "role", authToken)
+final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
+  extends CrudService[F, Role, Role.Create, Role.Update](baseUri, "role", authToken)
   with UniqueWithinDomain[F, Role] {
 
   /**
@@ -17,24 +18,36 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends C
     * @param domainId filters the response by a domain ID.
     * @return a stream of roles filtered by the various parameters.
     */
-  def list(name: Option[String] = None, domainId: Option[String] = None): Stream[F, WithId[Role]] =
+  def list(name: Option[String] = None, domainId: Option[String] = None): Stream[F, Role] =
     list(Query.fromVector(Vector(
       "name" -> name,
       "domain_ id" -> domainId,
     )))
 
 
-  override def create(role: Role, extraHeaders: Header*): F[WithId[Role]] = createHandleConflict(role, extraHeaders:_*) {
-    role.domainId match {
+  override def create(create: Role.Create, extraHeaders: Header*): F[Role] = createHandleConflict(create, extraHeaders:_*) {
+    def updateIt(existingRole: Role): F[Role] = {
+      // Description is the only field that can be different
+      if (existingRole.description != create.description) {
+        update(existingRole.id, Role.Update(description = create.description), extraHeaders:_*)
+      } else {
+        Sync[F].pure(existingRole)
+      }
+    }
+
+    create.domainId match {
       case Some(domainId) =>
-        get(role.name, domainId).flatMap(existingRole => update(existingRole.id, role))
+        // We got a Conflict and we have a domainId so we can find the existing Role since it must already exist
+        get(create.name, domainId).flatMap(updateIt)
       case None =>
-        // Ideally we could limit the list to at most 2 results, because that is all we need to disambiguate whether the role is unique or not.
-        listByName(role.name).compile.toList.flatMap { roles =>
+        // Currently Keystone does not accept the limit query param but it might in the future.
+        // We only need 2 results to disambiguate whether the role name is unique or not.
+        list(Query.fromPairs("name" -> create.name, "limit" -> "2"), extraHeaders:_*).compile.toList.flatMap { roles =>
           if (roles.lengthIs == 1) {
-            update(roles.head.id, role)
+            updateIt(roles.head)
           } else {
-            implicitly[Sync[F]].raiseError(UnexpectedStatus(Conflict))
+            // There is more than one role with name `create.name`. We do not have enough information to disambiguate between them.
+            Sync[F].raiseError(UnexpectedStatus(Conflict))
           }
         }
     }

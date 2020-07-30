@@ -2,7 +2,7 @@
 [![Scaladoc](http://javadoc-badge.appspot.com/pt.tecnico.dsi/scala-keystone-client_2.12.svg?label=scaladoc&style=plastic&maxAge=604800)](https://ist-dsi.github.io/scala-keystone-client/api/latest/pt/tecnico/dsi/openstack/keystone/index.html)
 [![Latest version](https://index.scala-lang.org/ist-dsi/scala-keystone-client/scala-keystone-client/latest.svg)](https://index.scala-lang.org/ist-dsi/scala-keystone-client/scala-keystone-client)
 
-[![Build Status](https://travis-ci.org/ist-dsi/scala-keystone-client.svg?branch=master&style=plastic&maxAge=604800)](https://travis-ci.org/ist-dsi/scala-keystone-client)
+[![Build Status](https://travis-ci.org/ist-dsi/scala-keystone-client.svg?branch=master&style=plastic)](https://travis-ci.org/ist-dsi/scala-keystone-client)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/1f752f2ed2d14ef5b301a55c772a32a4)](https://www.codacy.com/gh/ist-dsi/scala-keystone-client?utm_source=github.com&utm_medium=referral&utm_content=ist-dsi/scala-keystone-client&utm_campaign=Badge_Coverage)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/1f752f2ed2d14ef5b301a55c772a32a4)](https://www.codacy.com/gh/ist-dsi/scala-keystone-client?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ist-dsi/scala-keystone-client&amp;utm_campaign=Badge_Grade)
 [![BCH compliance](https://bettercodehub.com/edge/badge/ist-dsi/scala-keystone-client)](https://bettercodehub.com/results/ist-dsi/scala-keystone-client)
@@ -12,7 +12,6 @@ A pure functional Scala client for Openstack Keystone implemented using Http4s c
 Supported endpoints:
 - [Authentication and token management](https://docs.openstack.org/api-ref/identity/v3/#authentication-and-token-management)
   - Multi factor authentication is not implemented.
-- [Credentials](https://docs.openstack.org/api-ref/identity/v3/#credentials)
 - [Domains](https://docs.openstack.org/api-ref/identity/v3/#domains)
 - [Groups](https://docs.openstack.org/api-ref/identity/v3/#groups)
 - [Projects](https://docs.openstack.org/api-ref/identity/v3/#projects)
@@ -24,6 +23,7 @@ Supported endpoints:
 
 Unsupported endpoints (we accept PRs :)):
 - [Application Credentials](https://docs.openstack.org/api-ref/identity/v3/#application-credentials)
+- [Credentials](https://docs.openstack.org/api-ref/identity/v3/#credentials)
 - [Domain Configuration](https://docs.openstack.org/api-ref/identity/v3/#domain-configuration)
 - [OS-INHERIT](https://docs.openstack.org/api-ref/identity/v3/#os-inherit)
 - [Project Tags](https://docs.openstack.org/api-ref/identity/v3/#project-tags)

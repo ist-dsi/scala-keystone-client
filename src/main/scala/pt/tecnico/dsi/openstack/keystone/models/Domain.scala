@@ -1,35 +1,61 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import cats.effect.Sync
-import io.circe.Codec
-import io.circe.derivation.{deriveCodec, renaming}
+import io.circe.{Decoder, Encoder}
+import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
+import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
-import pt.tecnico.dsi.openstack.keystone.services.{Domains, RoleAssignment}
-import pt.tecnico.dsi.openstack.common.models.WithId
+import pt.tecnico.dsi.openstack.keystone.services.Domains
 
 object Domain {
-  implicit val codec: Codec.AsObject[Domain] = deriveCodec(renaming.snakeCase)
+  implicit val decoder: Decoder[Domain] = deriveDecoder(renaming.snakeCase)
 
-  def apply(name: String, enabled: Boolean, description: String): Domain = Domain(name, enabled, description, Seq.empty)
-
-  implicit class WithIdDomainExtensions[H[_]](domain: WithId[Domain])(implicit client: KeystoneClient[H], H: Sync[H])
-    extends IdFetcher[Domain] with RoleAssigner[Domain] {
-
-    override def getWithId[F[_]: Sync](implicit client: KeystoneClient[F]): F[WithId[Domain]] = implicitly(Sync[F]).pure(domain)
-    override def service[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = domain.service
+  object Create {
+    implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
   }
+  /**
+   * Options to create a Domain.
+   *
+   * @param name The name of the domain.
+   * @param description The description of the domain.
+   * @param explicitDomainId The ID of the domain. A domain created this way will not use an auto-generated ID, but will use the ID passed in instead.
+   *                         Identifiers passed in this way must conform to the existing ID generation scheme: UUID4 without dashes.
+   * @param enabled          If set to true, domain is created enabled. If set to false, domain is created disabled.
+   *                         Users can only authorize against an enabled domain (and any of its projects). In addition, users can only
+   *                         authenticate if the domain that owns them is also enabled. Disabling a domain prevents both of these things.
+   */
+  case class Create(
+    name: String,
+    description: Option[String] = None,
+    explicitDomainId: Option[String] = None,
+    enabled: Boolean = true,
+  )
+
+  object Update {
+    implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
+  }
+  /**
+   * Options to update a Domain.
+   *
+   * @param name The new name of the domain.
+   * @param description The new description of the domain.
+   * @param enabled If set to true, domain is created enabled. If set to false, domain is created disabled.
+   *                Users can only authorize against an enabled domain (and any of its projects). In addition, users can only
+   *                authenticate if the domain that owns them is also enabled. Disabling a domain prevents both of these things.
+   */
+  case class Update(
+    name: Option[String] = None,
+    description: Option[String] = None,
+    enabled: Option[Boolean] = None,
+  )
 }
 
 case class Domain(
+  id: String,
   name: String,
   enabled: Boolean,
-  description: String,
-  tags: Seq[String]
-) extends Enabler[Domain] with IdFetcher[Domain] with RoleAssigner[Domain] {
-  override def withEnabled(enabled: Boolean): Domain = copy(enabled = enabled)
-
-  override def getWithId[F[_]: Sync](implicit client: KeystoneClient[F]): F[WithId[Domain]] = client.domains.getByName(name)
-
+  description: Option[String] = None,
+  links: List[Link] = List.empty,
+) extends Identifiable with RoleAssigner {
   override def service[F[_]](implicit client: KeystoneClient[F]): Domains[F] = client.domains
 }
 

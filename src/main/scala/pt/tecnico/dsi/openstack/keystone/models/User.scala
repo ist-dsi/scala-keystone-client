@@ -7,7 +7,9 @@ import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
 import io.circe.syntax._
 import io.circe.{Codec, Decoder, Encoder}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
-import pt.tecnico.dsi.openstack.common.models.WithId
+import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
+
+// TODO extra, options, federated
 
 object User {
   /*The decoder must handle the user returned from GET /v3/users/${id} and the user return from the /v3/auth/tokens
@@ -28,46 +30,70 @@ object User {
   implicit val encoder: Encoder.AsObject[User] = deriveEncoder(renaming.snakeCase).mapJsonObject(_.remove("password_expires_at"))
   implicit val codec: Codec[User] = Codec.from(decoder, encoder)
 
-  def apply(name: String, domainId: String, defaultProjectId: Option[String], enabled: Boolean): User =
-    new User(name, domainId, defaultProjectId, None, enabled)
-
-  implicit class WithIdUserExtensions[F[_]](user: WithId[User])(implicit client: KeystoneClient[F], F: Sync[F]) {
-    /** The groups to which the user belongs */
-    val groups: Stream[F, Group] = client.users.listGroups(user.id)
-    /** The projects to which the user belongs */
-    val projects: Stream[F, Project] = client.users.listProjects(user.id)
-
-    def changePassword(originalPassword: String, password: String): F[Unit] =
-      client.users.changePassword(user.id, originalPassword, password)
-
-    def addToGroup(id: String): F[Unit] = client.groups.addUser(id, user.id)
-    def removeFromGroup(id: String): F[Unit] = client.groups.removeUser(id, user.id)
-    def isInGroup(id: String): F[Boolean] = client.groups.isUserInGroup(id, user.id)
+  object Create {
+    implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
   }
-}
+  /**
+   * Options to create a User
+   *
+   * @param name             The user name. Must be unique within the owning domain.
+   * @param password         The password for the user.
+   * @param domainId         The ID of the domain of the user. If the domain ID is not provided in the request, the Identity service will attempt to pull the
+   *                         domain ID from the token used in the request. Note that this requires the use of a domain-scoped token.
+   * @param defaultProjectId The ID of the default project for the user. A user’s default project must not be a domain.
+   *                         Setting this attribute does not grant any actual authorization on the project, and is merely provided for convenience.
+   *                         Therefore, the referenced project does not need to exist within the user domain.
+   *                         If the user does not have authorization to their default project, the default project is ignored at token creation.
+   *                         Additionally, if your default project is not valid, a token is issued without an explicit scope of authorization.
+   * @param enabled          If the user is enabled, this value is true. If the user is disabled, this value is false.
+   */
+  case class Create(
+    name: String,
+    password: Option[String] = None,
+    domainId: Option[String] = None,
+    defaultProjectId: Option[String] = None,
+    enabled: Boolean = true,
+  )
 
+  object Update {
+    implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
+  }
+  /**
+   * Options to update a User
+   *
+   * @param name The new name for the user. Must be unique within the owning domain.
+   * @param password The new password for the user.
+   * @param defaultProjectId The new ID of the default project for the user.
+   * @param enabled Enables or disables the user. An enabled user can authenticate and receive authorization. A disabled user cannot authenticate
+   *             or receive authorization. Additionally, all tokens that the user holds become no longer valid. If you reenable this user,
+   *             pre-existing tokens do not become valid. To enable the user, set to true. To disable the user, set to false.
+   */
+  case class Update(
+    name: Option[String] = None,
+    password: Option[String] = None,
+    defaultProjectId: Option[String] = None,
+    enabled: Option[Boolean] = None,
+  )
+}
 case class User(
+  id: String,
   name: String,
   domainId: String,
   defaultProjectId: Option[String] = None,
   passwordExpiresAt: Option[OffsetDateTime] = None,
   enabled: Boolean = true,
-  // TODO: handle the extra attributes
-) extends Enabler[User] with IdFetcher[User] {
-  override def getWithId[F[_]: Sync](implicit client: KeystoneClient[F]): F[WithId[User]] = client.users.get(name, domainId)
-
-  override def withEnabled(enabled: Boolean): User = copy(enabled = enabled)
-
-  def domain[F[_]](implicit client: KeystoneClient[F]): F[WithId[Domain]] = client.domains.get(domainId)
+  links: List[Link] = List.empty,
+) extends Identifiable { self =>
+  def domain[F[_]](implicit client: KeystoneClient[F]): F[Domain] = client.domains.apply(domainId) // The domain must exist
 
   /** The groups to which the user belongs */
-  def groups[F[_]: Sync: KeystoneClient]: Stream[F, Group] = withId(_.groups)
+  def groups[F[_]: Sync](implicit client: KeystoneClient[F]): Stream[F, Group] = client.users.listGroups(self.id)
   /** The projects to which the user belongs */
-  def projects[F[_]: Sync: KeystoneClient]: Stream[F, Project] = withId(_.projects)
-  def changePassword[F[_]: Sync: KeystoneClient](originalPassword: String, password: String): F[Unit] =
-    withId(_.changePassword(originalPassword, password))
+  def projects[F[_]: Sync](implicit client: KeystoneClient[F]): Stream[F, Project] = client.users.listProjects(self.id)
+  def changePassword[F[_]: Sync](originalPassword: String, password: String)(implicit client: KeystoneClient[F]): F[Unit] =
+    client.users.changePassword(self.id, originalPassword, password)
 
-  def addToGroup[F[_]: Sync: KeystoneClient](id: String): F[Unit] = withId(_.addToGroup(id))
-  def removeFromGroup[F[_]: Sync: KeystoneClient](id: String): F[Unit] = withId(_.removeFromGroup(id))
-  def isInGroup[F[_]: Sync: KeystoneClient](id: String): F[Boolean] = withId(_.isInGroup(id))
+  def addToGroup[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.addUser(id, self.id)
+  def removeFromGroup[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.removeUser(id, self.id)
+  def isInGroup[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Boolean] = client.groups.isUserInGroup(id, self.id)
 }

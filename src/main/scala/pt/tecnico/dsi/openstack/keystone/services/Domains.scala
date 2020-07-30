@@ -7,10 +7,11 @@ import org.http4s.Method.DELETE
 import org.http4s.Status.{Forbidden, NotFound, Successful}
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
-import pt.tecnico.dsi.openstack.common.models.WithId
+import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.Domain
 
-final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CrudService[F, Domain](baseUri, "domain", authToken)
+final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
+  extends CrudService[F, Domain, Domain.Create, Domain.Update](baseUri, "domain", authToken)
   with RoleAssignment[F]
   with EnableDisableEndpoints[F, Domain] {
   import dsl._
@@ -20,7 +21,7 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends
     * @param enabled filters the response by either enabled (true) or disabled (false) domains.
     * @return a stream of domains filtered by the various parameters.
     */
-  def list(name: Option[String] = None, enabled: Option[Boolean]): Stream[F, WithId[Domain]] =
+  def list(name: Option[String] = None, enabled: Option[Boolean]): Stream[F, Domain] =
     list(Query.fromVector(Vector(
       "name" -> name,
       "enabled" -> enabled.map(_.toString),
@@ -32,13 +33,16 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends
     * @param name the domain name
     * @return the domain matching the name.
     */
-  def getByName(name: String): F[WithId[Domain]] = {
+  def getByName(name: String): F[Domain] = {
     // A domain name is globally unique across all domains.
     list(Query.fromPairs("name" -> name)).compile.lastOrError
   }
 
-  override def create(domain: Domain, extraHeaders: Header*): F[WithId[Domain]] = createHandleConflict(domain, extraHeaders:_*) {
-    getByName(domain.name).flatMap(existingDomain => update(existingDomain.id, domain))
+  override def create(create: Domain.Create, extraHeaders: Header*): F[Domain] = createHandleConflict(create, extraHeaders:_*) {
+    getByName(create.name).flatMap { existingDomain =>
+      val updated = Domain.Update(description = create.description, enabled = Some(create.enabled))
+      update(existingDomain.id, updated)
+    }
   }
 
   /**
@@ -61,4 +65,6 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends
         }
     })
   }
+
+  override protected def updateEnable(id: String, enabled: Boolean): F[Domain] = update(id, Domain.Update(enabled = Some(enabled)))
 }

@@ -7,10 +7,11 @@ import io.circe.syntax._
 import org.http4s.Method.POST
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
-import pt.tecnico.dsi.openstack.common.models.WithId
-import pt.tecnico.dsi.openstack.keystone.models.{Group, Project, User}
+import pt.tecnico.dsi.openstack.common.services.CrudService
+import pt.tecnico.dsi.openstack.keystone.models.{Group, Project, Session, User}
 
-final class Users[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends CrudService[F, User](baseUri, "user", authToken)
+final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session, authToken: Header)
+  extends CrudService[F, User, User.Create, User.Update](baseUri, "user", authToken)
   with UniqueWithinDomain[F, User]
   with EnableDisableEndpoints[F, User] {
 
@@ -28,7 +29,7 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends C
     * @return a stream of users filtered by the various parameters.
     */
   def list(name: Option[String] = None, domainId: Option[String] = None, passwordExpiresAt: Option[String], enabled: Option[Boolean],
-           idpId: Option[String] = None, protocolId: Option[String] = None, uniqueId: Option[String] = None): Stream[F, WithId[User]] =
+           idpId: Option[String] = None, protocolId: Option[String] = None, uniqueId: Option[String] = None): Stream[F, User] =
     list(Query.fromVector(Vector(
       "name" -> name,
       "domain_ id" -> domainId,
@@ -68,9 +69,19 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, authToken: Header) extends C
     client.expect(POST(body.asJson, uri / id / password, authToken))
   }
 
-
-  override def create(user: User, extraHeaders: Header*): F[WithId[User]] = createHandleConflict(user, extraHeaders:_*) {
-    // If we got a conflict then a user with this name must already exist.
-    get(user.name, user.domainId).flatMap(existingUser => update(existingUser.id, user))
+  override def create(create: User.Create, extraHeaders: Header*): F[User] = createHandleConflict(create, extraHeaders:_*) {
+    val domainId = create.domainId.getOrElse(domainIdFromScope(session.scope))
+    // We got a Conflict so we must be able to find the existing User
+    get(create.name, domainId).flatMap { existingUser =>
+      // TODO: should we always update because of the password?
+      if (existingUser.defaultProjectId != create.defaultProjectId || existingUser.enabled != create.enabled) {
+        val updated = User.Update(password = create.password, defaultProjectId = create.defaultProjectId, enabled = Some(create.enabled))
+        update(existingUser.id, updated, extraHeaders:_*)
+      } else {
+        Sync[F].pure(existingUser)
+      }
+    }
   }
+
+  override protected def updateEnable(id: String, enabled: Boolean): F[User] = update(id, User.Update(enabled = Some(enabled)))
 }

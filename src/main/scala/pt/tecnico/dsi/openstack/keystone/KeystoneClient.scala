@@ -2,6 +2,7 @@ package pt.tecnico.dsi.openstack.keystone
 
 import cats.effect.Sync
 import cats.syntax.flatMap._
+import org.http4s.Uri.Path
 import org.http4s.client.Client
 import org.http4s.{Header, Uri}
 import pt.tecnico.dsi.openstack.keystone.models.Session
@@ -18,16 +19,18 @@ object KeystoneClient {
 }
 
 class KeystoneClient[F[_]: Sync](val baseUri: Uri, val session: Session, val authToken: Header)(implicit client: Client[F]) {
-  val uri: Uri = if (baseUri.path.endsWith("v3") || baseUri.path.endsWith("v3/")) baseUri else baseUri / "v3"
+  val uri: Uri = {
+    val lastSegment = baseUri.path.dropEndsWithSlash.segments.lastOption
+    if (lastSegment.contains(Path.Segment("v3"))) baseUri else baseUri / "v3"
+  }
 
   val authentication = new Authentication[F](uri, authToken)
-  val credentials = new Credentials[F](uri, authToken)
   val domains = new Domains[F](uri, authToken)
-  val groups = new Groups[F](uri, authToken)
-  val projects = new Projects[F](uri, authToken)
+  val groups = new Groups[F](uri, session, authToken)
+  val projects = new Projects[F](uri, session, authToken)
   val regions = new Regions[F](uri, authToken)
   val roles = new Roles[F](uri, authToken)
   val services = new Services[F](uri, authToken)
   val endpoints = new Endpoints[F](uri, authToken)
-  val users = new Users[F](uri, authToken)
+  val users = new Users[F](uri, session, authToken)
 }

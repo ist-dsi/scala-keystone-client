@@ -4,7 +4,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process._
-import cats.effect.{ContextShift, IO, Timer}
+import scala.util.Random
+import cats.effect.{ContextShift, IO, Resource, Timer}
 import cats.instances.list._
 import cats.syntax.traverse._
 import org.http4s.client.Client
@@ -14,8 +15,10 @@ import org.scalatest._
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
+import pt.tecnico.dsi.openstack.common.models.Identifiable
+import pt.tecnico.dsi.openstack.common.services.CrudService
 
-abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
+abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll with OptionValues {
   val logger: Logger = getLogger
 
   implicit override def executionContext = ExecutionContext.global
@@ -30,6 +33,8 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
 
   override protected def afterAll(): Unit = finalizer.unsafeRunSync()
 
+  //import org.http4s.client.middleware.Logger
+  //implicit val httpClient: Client[IO] = Logger(logBody = true, logHeaders = true)(_httpClient)
   implicit val httpClient: Client[IO] = _httpClient
 
   val ignoreStdErr = ProcessLogger(_ => ())
@@ -38,7 +43,17 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
     case openstackEnvVariableRegex(key, value) => key -> value
   }.toMap
 
-  val scopedClient: IO[KeystoneClient[IO]] = KeystoneClient.fromEnvironment(dockerVars)
+  // This way we only authenticate to Openstack once, and make the logs smaller and easier to debug.
+  val keystone: KeystoneClient[IO] = KeystoneClient.fromEnvironment(dockerVars).unsafeRunSync()
+
+  // Not very purely functional :(
+  val random = new Random()
+  def randomName(): String = random.alphanumeric.take(10).mkString.dropWhile(_.isDigit).toLowerCase
+  def withRandomName[T](f: String => IO[T]): IO[T] = IO.delay(randomName()).flatMap(f)
+
+  def resourceCreator[R <: Identifiable, Create](service: CrudService[IO, R, Create, _])(create: String => Create): Resource[IO, R] = {
+    Resource.make(withRandomName(name => service.create(create(name))))(model => service.delete(model.id))
+  }
 
   implicit class RichIO[T](io: IO[T]) {
     def idempotently(test: T => Assertion, repetitions: Int = 3): IO[Assertion] = {
@@ -72,32 +87,5 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   }
 
   import scala.language.implicitConversions
-  implicit def io2Future[T](io: IO[T]): Future[T] = io.unsafeToFuture()
-
-  private def ordinalSuffix(number: Int): String = {
-    number % 100 match {
-      case 1 => "st"
-      case 2 => "nd"
-      case 3 => "rd"
-      case _ => "th"
-    }
-  }
-
-  def idempotently(test: KeystoneClient[IO] => IO[Assertion], repetitions: Int = 3): Future[Assertion] = {
-    require(repetitions >= 2, "To test for idempotency at least 2 repetitions must be made")
-
-    // If the first run fails we do not want to mask its exception, because failing in the first attempt means
-    // whatever is being tested in `test` is not implemented correctly.
-    scopedClient.flatMap(test).unsafeToFuture().flatMap { _ =>
-      // For the subsequent iterations we mask TestFailed with "Operation is not idempotent"
-      Future.traverse(2 to repetitions) { repetition =>
-        scopedClient.flatMap(test).unsafeToFuture().transform(identity, {
-          case e: TestFailedException =>
-            val text = s"$repetition${ordinalSuffix(repetition)}"
-            e.modifyMessage(_.map(m => s"Operation is not idempotent. On $text repetition got:\n$m"))
-          case e => e
-        })
-      } map (_ should contain only (Succeeded)) // Scalatest flatten :P
-    }
-  }
+  implicit def io2Future(io: IO[Assertion]): Future[Assertion] = io.unsafeToFuture()
 }

@@ -4,33 +4,56 @@ import cats.effect.Sync
 import cats.instances.list._
 import cats.syntax.foldable._
 import fs2.Stream
-import io.circe.Codec
-import io.circe.derivation.{deriveCodec, renaming}
+import io.circe.{Decoder, Encoder}
+import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
+import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
-import pt.tecnico.dsi.openstack.common.models.WithId
 
 object Group {
-  implicit val codec: Codec.AsObject[Group] = deriveCodec(renaming.snakeCase)
+  implicit val codec: Decoder[Group] = deriveDecoder(renaming.snakeCase)
 
-  implicit class WithIdGroupExtensions[F[_]](group: WithId[Group])(implicit client: KeystoneClient[F], F: Sync[F]) {
-    val users: Stream[F, WithId[User]] = client.groups.listUsers(group.id)
-    def addUser(id: String): F[Unit] = client.groups.addUser(group.id, id)
-    def addUsers(ids: List[String]): F[Unit] = ids.traverse_(client.groups.addUser(group.id, _))
-    def removeUser(id: String): F[Unit] = client.groups.removeUser(group.id, id)
-    def removeUsers(ids: List[String]): F[Unit] = ids.traverse_(client.groups.removeUser(group.id, _))
-    def isUserInGroup(id: String): F[Boolean] = client.groups.isUserInGroup(group.id, id)
+  object Create {
+    implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
   }
+  /**
+   * Options to create a Group.
+   * @param name The name of the group.
+   * @param description The description of the group.
+   * @param domainId The ID of the domain of the group. If the domain ID is not provided in the request, the Identity service will attempt
+   *                 to pull the domain ID from the token used in the request. Note that this requires the use of a domain-scoped token.
+   */
+  case class Create(
+    name: String,
+    description: Option[String] = None,
+    domainId: Option[String] = None,
+  )
+
+  object Update {
+    implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
+  }
+  /**
+   * Options to update a Group.
+   * @param name The new name of the group.
+   * @param description The new description of the group.
+   */
+  case class Update(
+    name: Option[String] = None,
+    description: Option[String] = None,
+  )
 }
+case class Group(
+  id: String,
+  name: String,
+  description: Option[String] = None,
+  domainId: String,
+  links: List[Link] = List.empty,
+) extends Identifiable { self =>
+  def domain[F[_]](implicit client: KeystoneClient[F]): F[Domain] = client.domains.apply(domainId) // The domain must exist
 
-case class Group(name: String, description: String, domainId: String) extends IdFetcher[Group] {
-  override def getWithId[F[_]: Sync](implicit client: KeystoneClient[F]): F[WithId[Group]] = client.groups.get(name, domainId)
-
-  def domain[F[_]](implicit client: KeystoneClient[F]): F[WithId[Domain]] = client.domains.get(domainId)
-
-  def users[F[_]: Sync: KeystoneClient]: Stream[F, WithId[User]] = withId(_.users)
-  def addUser[F[_]: Sync: KeystoneClient](id: String): F[Unit] = withId(_.addUser(id))
-  def addUsers[F[_]: Sync: KeystoneClient](ids: List[String]): F[Unit] = withId(_.addUsers(ids))
-  def removeUser[F[_]: Sync: KeystoneClient](id: String): F[Unit] = withId(_.removeUser(id))
-  def removeUsers[F[_]: Sync: KeystoneClient](ids: List[String]): F[Unit] = withId(_.removeUsers(ids))
-  def isUserInGroup[F[_]: Sync: KeystoneClient](id: String): F[Boolean] = withId(_.isUserInGroup(id))
+  def users[F[_]: Sync](implicit client: KeystoneClient[F]): Stream[F, User] = client.groups.listUsers(self.id)
+  def addUser[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.addUser(self.id, id)
+  def addUsers[F[_]: Sync](ids: List[String])(implicit client: KeystoneClient[F]): F[Unit] = ids.traverse_(client.groups.addUser(self.id, _))
+  def removeUser[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.removeUser(self.id, id)
+  def removeUsers[F[_]: Sync](ids: List[String])(implicit client: KeystoneClient[F]): F[Unit] = ids.traverse_(client.groups.removeUser(self.id, _))
+  def isUserInGroup[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Boolean] = client.groups.isUserInGroup(self.id, id)
 }

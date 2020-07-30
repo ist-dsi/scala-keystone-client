@@ -2,13 +2,12 @@ package pt.tecnico.dsi.openstack.keystone.models
 
 import java.time.OffsetDateTime
 import io.circe.{Decoder, HCursor}
-import pt.tecnico.dsi.openstack.common.models.WithId
 
 object Session {
   implicit val decoder: Decoder[Session] = { cursor: HCursor =>
     val tokenCursor = cursor.downField("token")
     for {
-      user <- tokenCursor.get[WithId[User]]("user")
+      user <- tokenCursor.get[User]("user")
       expiresAt <- tokenCursor.get[OffsetDateTime]("expires_at")
       issuedAt <- tokenCursor.get[OffsetDateTime]("issued_at")
       roles <- tokenCursor.getOrElse[List[Role]]("roles")(List.empty)
@@ -18,9 +17,8 @@ object Session {
     } yield Session(user, expiresAt, issuedAt, auditIds, roles, catalog, scope)
   }
 }
-
 case class Session(
-  user: WithId[User],
+  user: User,
   expiredAt: OffsetDateTime,
   issuedAt: OffsetDateTime,
   auditIds: List[String],
