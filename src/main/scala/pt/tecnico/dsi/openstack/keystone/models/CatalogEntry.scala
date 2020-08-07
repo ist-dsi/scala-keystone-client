@@ -16,9 +16,9 @@ object CatalogEntry {
 }
 
 case class CatalogEntry(`type`: String, serviceId: String, serviceName: String, endpoints: List[Endpoint]) {
-  lazy val urisPerRegionPerInterface: Map[String, Map[Interface, String]] = endpoints.groupBy(_.regionId).view.mapValues { perRegion =>
-    perRegion.groupMap(_.interface)(_.url).view.mapValues(_.head).toMap
+  lazy val urisPerInterfacePerRegion: Map[Interface, Map[String, String]] = endpoints.groupBy(_.interface).view.mapValues { perInterface =>
+    perInterface.groupMap(_.regionId)(_.url).view.mapValues(_.head).toMap
   }.toMap
-  def urlsOf(region: String): Option[Map[Interface, String]] = urisPerRegionPerInterface.get(region)
-  def urlOf(region: String, interface: Interface): Option[String] = urlsOf(region).flatMap(_.get(interface))
+  def urlsOf(interface: Interface): Option[Map[String, String]] = urisPerInterfacePerRegion.get(interface)
+  def urlOf(interface: Interface, region: String): Option[String] = urlsOf(interface).flatMap(_.get(region))
 }
