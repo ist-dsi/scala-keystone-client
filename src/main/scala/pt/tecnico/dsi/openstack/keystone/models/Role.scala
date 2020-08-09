@@ -1,7 +1,7 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
 import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, HCursor}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
 object Role {
@@ -36,7 +36,19 @@ object Role {
     name: Option[String] = None,
     description: Option[String] = None,
   )
+
+  object Assignment {
+    implicit val decoder: Decoder[Assignment] = { cursor: HCursor =>
+      for {
+        // TODO: How to test if downField worked?
+        projectId <- cursor.downField("scope").downField("project").downField("id").as[String]
+      } yield Assignment(projectId)
+    }
+  }
+
+  case class Assignment(projectId: String)
 }
+
 case class  Role(
   id: String,
   name: String,
