@@ -3,15 +3,22 @@ package pt.tecnico.dsi.openstack.keystone.services
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import fs2.Stream
+import org.http4s.Status.Conflict
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
-import org.http4s.Status.Conflict
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.Role
 
 final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
   extends CrudService[F, Role, Role.Create, Role.Update](baseUri, "role", authToken)
   with UniqueWithinDomain[F, Role] {
+
+  /**
+    * @param groupId filters the response by groupId
+    * @return a stream of ids from projects to which a certain group has been assigned a certain role
+    */
+  def assignments(groupId: String): Stream[F, Role.Assignment] =
+    list[Role.Assignment]("role_assignments", baseUri / "role_assignments", Query.fromPairs("group.id" -> groupId))
 
   /**
     * @param name filters the response by a role name.
