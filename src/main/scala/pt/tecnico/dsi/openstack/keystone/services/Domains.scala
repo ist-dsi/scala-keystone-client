@@ -12,7 +12,6 @@ import pt.tecnico.dsi.openstack.keystone.models.Domain
 
 final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
   extends CrudService[F, Domain, Domain.Create, Domain.Update](baseUri, "domain", authToken)
-  with RoleAssignment[F]
   with EnableDisableEndpoints[F, Domain] {
   import dsl._
 
@@ -28,18 +27,27 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
     )))
 
   /**
-    * Get detailed information about the domain specified by name.
+    * Get detailed information about the domain specified by name, assuming it exists.
     *
     * @param name the domain name
-    * @return the domain matching the name.
+    * @return the domain matching the name. If none exists F will contain an error.
     */
-  def getByName(name: String): F[Domain] = {
+  def applyByName(name: String): F[Domain] = {
     // A domain name is globally unique across all domains.
     list(Query.fromPairs("name" -> name)).compile.lastOrError
   }
+  /**
+   * Get detailed information about the domain specified by name.
+   *
+   * @param name the domain name
+   * @return a Some of the domain matching the name if it exists. A None otherwise.
+   */
+  def getByName(name: String): F[Option[Domain]] =
+    list(Query.fromPairs("name" -> name)).compile.last
 
   override def create(create: Domain.Create, extraHeaders: Header*): F[Domain] = createHandleConflict(create, extraHeaders:_*) {
-    getByName(create.name).flatMap { existingDomain =>
+    // We got a conflict so a domain with this name must already exist
+    applyByName(create.name).flatMap { existingDomain =>
       val updated = Domain.Update(description = create.description, enabled = Some(create.enabled))
       update(existingDomain.id, updated)
     }
@@ -65,6 +73,11 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
         }
     })
   }
-
+  
+  /** Allows performing role assignment operations on the domain with `id` */
+  def on(id: String): RoleAssignment[F] = new RoleAssignment(baseUri / "domains" / id, authToken)
+  /** Allows performing role assignment operations on `domain`. */
+  def on(domain: Domain): RoleAssignment[F] = on(domain.id)
+  
   override protected def updateEnable(id: String, enabled: Boolean): F[Domain] = update(id, Domain.Update(enabled = Some(enabled)))
 }

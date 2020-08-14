@@ -1,10 +1,10 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import io.circe.{Decoder, Encoder}
 import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
+import io.circe.{Decoder, Encoder}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
-import pt.tecnico.dsi.openstack.keystone.services.Domains
+import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
 
 object Domain {
   implicit val decoder: Decoder[Domain] = deriveDecoder(renaming.snakeCase)
@@ -49,13 +49,16 @@ object Domain {
   )
 }
 
-case class Domain(
+/**
+ * @define context domain
+ */
+final case class Domain(
   id: String,
   name: String,
   enabled: Boolean,
   description: Option[String] = None,
   links: List[Link] = List.empty,
 ) extends Identifiable with RoleAssigner {
-  override def service[F[_]](implicit client: KeystoneClient[F]): Domains[F] = client.domains
+  def roleAssignment[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = client.domains.on(this)
 }
 

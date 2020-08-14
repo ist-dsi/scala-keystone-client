@@ -41,7 +41,7 @@ object Group {
     description: Option[String] = None,
   )
 }
-case class Group(
+final case class Group(
   id: String,
   name: String,
   description: Option[String] = None,

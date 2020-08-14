@@ -33,13 +33,13 @@ class RoleSpec extends CrudSpec[Role, Role.Create, Role.Update]("role") {
     Resource.make(create)(model => service.delete(model.id))
   }
 
-  s"The ${name} service" should {
+  s"The $name service" should {
     s"list ${name}s in a domain" in roleWithDomainResource.use[IO, Assertion] { role =>
       keystone.roles.listByDomain(role.domainId.get).compile.toList.idempotently(_ should contain(role))
     }
 
     s"get ${name}s in a domain" in roleWithDomainResource.use[IO, Assertion] { role =>
-      keystone.roles.get(role.name, role.domainId.get).idempotently(_ shouldBe role)
+      keystone.roles.apply(role.name, role.domainId.get).idempotently(_ shouldBe role)
     }
   }
 }

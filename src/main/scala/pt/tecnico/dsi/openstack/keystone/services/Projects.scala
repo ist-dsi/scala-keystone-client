@@ -13,7 +13,6 @@ import pt.tecnico.dsi.openstack.keystone.models.{Project, Session}
 final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session, authToken: Header)
   extends CrudService[F, Project, Project.Create, Project.Update](baseUri, "project", authToken)
   with UniqueWithinDomain[F, Project]
-  with RoleAssignment[F]
   with EnableDisableEndpoints[F, Project] {
 
   /**
@@ -49,12 +48,8 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session, authTok
       // Currently Keystone does not accept the limit query param but it might in the future.
       // We only need 2 results to disambiguate whether the project name is unique or not.
       list(Query.fromPairs("name" -> create.name, "is_domain" -> "true", "limit" -> "2")).compile.toList.flatMap { projects =>
-        if (projects.lengthIs == 1) {
-          updateIt(projects.head)
-        } else {
-          // There is more than one Project with name `create.name` and isDomain = true. We do not have enough information to disambiguate between them.
-          Sync[F].raiseError(UnexpectedStatus(Conflict))
-        }
+        if (projects.lengthIs == 1) updateIt(projects.head)
+        else Sync[F].raiseError(UnexpectedStatus(Conflict)) // We do not have enough information to disambiguate between them.
       }
     } else {
       val computeDomainId: F[String] = create.domainId match {
@@ -69,10 +64,15 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session, authTok
       }
       computeDomainId.flatMap { domainId =>
         // We got a Conflict so we must be able to find the existing Project
-        get(create.name, domainId).flatMap(updateIt)
+        apply(create.name, domainId).flatMap(updateIt)
       }
     }
   }
+  
+  /** Allows performing role assignment operations on the project with `id` */
+  def on(id: String): RoleAssignment[F] = new RoleAssignment(baseUri / "projects" / id, authToken)
+  /** Allows performing role assignment operations on `project`. */
+  def on(project: Project): RoleAssignment[F] = on(project.id)
 
   override protected def updateEnable(id: String, enabled: Boolean): F[Project] = update(id, Project.Update(enabled = Some(enabled)))
 }

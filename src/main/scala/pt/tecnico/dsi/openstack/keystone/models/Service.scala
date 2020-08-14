@@ -44,7 +44,7 @@ object Service {
   )
 }
 
-case class Service private[keystone] (
+final case class Service private[keystone] (
   id: String,
   name: String,
   `type`: String,
