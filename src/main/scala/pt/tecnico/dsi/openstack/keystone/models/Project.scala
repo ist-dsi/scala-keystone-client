@@ -1,10 +1,10 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import io.circe.{Decoder, Encoder}
 import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
+import io.circe.{Decoder, Encoder}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
-import pt.tecnico.dsi.openstack.keystone.services.Projects
+import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
 
 object Project {
   implicit val decoder: Decoder[Project] = deriveDecoder(renaming.snakeCase)
@@ -67,7 +67,11 @@ object Project {
     tags: Option[List[String]] = None,
   )
 }
-case class Project(
+
+/**
+ * @define context project
+ */
+final case class Project(
   id: String,
   name: String,
   description: Option[String] = None,
@@ -78,5 +82,5 @@ case class Project(
   tags: List[String],
   links: List[Link] = List.empty,
 ) extends Identifiable with RoleAssigner {
-  override def service[F[_]](implicit client: KeystoneClient[F]): Projects[F] = client.projects
+  override def roleAssignment[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = client.projects.on(this)
 }

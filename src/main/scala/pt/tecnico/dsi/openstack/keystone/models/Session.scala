@@ -17,7 +17,7 @@ object Session {
     } yield Session(user, expiresAt, issuedAt, auditIds, roles, catalog, scope)
   }
 }
-case class Session(
+final case class Session(
   user: User,
   expiredAt: OffsetDateTime,
   issuedAt: OffsetDateTime,
@@ -25,4 +25,7 @@ case class Session(
   roles: List[Role],
   catalog: List[CatalogEntry],
   scope: Scope,
-)
+) {
+  // For a given type (compute, network, etc) the catalog only has one CatalogEntry so we use .head to "drop the list"
+  lazy val catalogPerType: Map[String, CatalogEntry] = catalog.groupBy(_.`type`).view.mapValues(_.head).toMap
+}

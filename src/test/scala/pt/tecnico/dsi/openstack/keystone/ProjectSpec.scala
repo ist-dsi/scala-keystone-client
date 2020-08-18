@@ -2,15 +2,14 @@ package pt.tecnico.dsi.openstack.keystone
 
 import cats.effect.IO
 import org.scalatest.Assertion
-import pt.tecnico.dsi.openstack.keystone.services.domainIdFromScope
+import pt.tecnico.dsi.openstack.keystone.services.{Projects, RoleAssignment, domainIdFromScope}
 import pt.tecnico.dsi.openstack.keystone.models.Project
-import pt.tecnico.dsi.openstack.keystone.services.Projects
 
 class ProjectSpec extends CrudSpec[Project, Project.Create, Project.Update]("project")
   with RoleAssignmentSpec[Project] with EnableDisableSpec[Project] {
   override def service: Projects[IO] = keystone.projects
-  override def roleService: Projects[IO] = keystone.projects
-
+  def roleService(model: Project): RoleAssignment[IO] = service.on(model)
+  
   override def getEnabled(model: Project): Boolean = model.enabled
 
   override def createStub(name: String): Project.Create = Project.Create(name, Some("a description"), tags = List("a", "b", "c"))

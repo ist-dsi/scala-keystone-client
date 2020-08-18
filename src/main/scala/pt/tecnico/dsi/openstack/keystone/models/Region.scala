@@ -36,7 +36,7 @@ object Region {
   )
 }
 
-case class Region(
+final case class Region(
   id: String,
   description: Option[String],
   parentRegionId: Option[String],

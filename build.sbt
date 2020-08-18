@@ -28,8 +28,6 @@ scalacOptions ++= Seq(
   //"-Woctal-literal",               // Warn on obsolete octal syntax.
   "-Wvalue-discard",               // Warn when non-Unit expression results are unused.
   "-Wunused:_",                    // Enables every warning of unused members/definitions/etc
-  // https://github.com/scala/bug/issues/11980
-  "-Wconf:cat=unused-privates&site=pt\\.tecnico\\.dsi\\.keystone\\.models\\.auth\\..*:silent"
 )
 
 // These lines ensure that in sbt console or sbt test:console the -Ywarn* and the -Xfatal-warning are not bothersome.
@@ -47,7 +45,7 @@ libraryDependencies ++= Seq(
   "io.circe"        %% "circe-parser"      % "0.13.0", // Used in Credentials
   "com.beachape"    %% "enumeratum-circe"  % "1.6.1",
   "ch.qos.logback"  %  "logback-classic"   % "1.2.3" % Test,
-  "org.scalatest"   %% "scalatest"         % "3.2.1" % Test,
+  "org.scalatest"   %% "scalatest"         % "3.2.0" % Test,
 )
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
@@ -58,6 +56,7 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 // ======================================================================================================================
 // By default, logging is buffered for each test source file until all tests for that file complete. This disables it.
 Test / logBuffered := false
+// https://www.scala-sbt.org/1.x/docs/Testing.html#Forking+tests
 // By default, tests executed in a forked JVM are executed sequentially.
 Test / fork := true
 // So we make them run in parallel.

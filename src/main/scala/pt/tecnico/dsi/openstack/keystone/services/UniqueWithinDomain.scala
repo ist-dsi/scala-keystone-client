@@ -19,14 +19,24 @@ trait UniqueWithinDomain[F[_], T <: Identifiable] { this: CrudService[F, T, _, _
   def listByDomain(domainId: String): Stream[F, T] = list(Query.fromPairs("domain_id" -> domainId))
 
   /**
-    * Get detailed information about the `T` specified by name and domainId.
+    * Get detailed information about the `T` specified by name and domainId, assuming it exists.
     *
     * @param name the `T` name
     * @param domainId the domain id
-    * @return the `T` matching the name in a specific domain.
+    * @return the `T` matching the name in a specific domain. If no such `T` exists F will contain an error.
     */
-  def get(name: String, domainId: String): F[T] = {
+  def apply(name: String, domainId: String): F[T] = {
     // The name is unique within the owning domain.
     list(Query.fromPairs("name" -> name, "domain_id" -> domainId)).compile.lastOrError
   }
+  
+  /**
+   * Get detailed information about the `T` specified by name and domainId.
+   *
+   * @param name the `T` name
+   * @param domainId the domain id
+   * @return a Some `T` matching the name in a specific domain if it exists. A None otherwise.
+   */
+  def get(name: String, domainId: String): F[Option[T]] =
+    list(Query.fromPairs("name" -> name, "domain_id" -> domainId)).compile.last
 }

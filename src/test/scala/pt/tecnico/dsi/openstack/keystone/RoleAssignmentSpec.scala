@@ -4,59 +4,71 @@ import cats.effect.{IO, Resource}
 import org.scalatest.Assertion
 import pt.tecnico.dsi.openstack.common.models.Identifiable
 import pt.tecnico.dsi.openstack.keystone.models.{Group, Role, User}
-import pt.tecnico.dsi.openstack.keystone.services.{RoleAssignment, RoleAssignmentService}
+import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
 
 trait RoleAssignmentSpec[T <: Identifiable] { this: CrudSpec[T, _, _] =>
-  def roleService: RoleAssignment[IO]
+  def roleService(model: T): RoleAssignment[IO]
 
-  def test[R <: Identifiable](assignTo: String, assignToResource: Resource[IO, R], roleAssignmentService: RoleAssignmentService[IO]): Unit = {
-    val withStubs: Resource[IO, (String, String, String)] = {
+  val withStubs: Resource[IO, (RoleAssignment[IO], User, Group, Role)] = {
+    val fullResource = for {
+      user <- resourceCreator(keystone.users)(User.Create(_, Some(randomName())))
+      group <- resourceCreator(keystone.groups)(Group.Create(_))
+      model <- resource
+      // We cannot use Some(domainId) because listing roles by default does not list roles from all domains
+      role <- resourceCreator(keystone.roles)(n => Role.Create(s"role-assignment-$n"))
+    } yield (roleService(model), user, group, role)
+    // Every test needs to assign the role
+    fullResource.evalMap { case (roleService, user, group, role) =>
       for {
-        obj <- resource
-        stub <- assignToResource
-        // We cannot use Some(domainId) because listing roles by default does not list roles from all domains
-        role <- resourceCreator(keystone.roles)(n => Role.Create(s"role-assignment-$n"))
-      } yield (obj.id, stub.id, role.id)
-    }
-
-    s"list assigned roles to a $assignTo" in withStubs.use[IO, Assertion] { case (objId, stubId, roleId) =>
-      for {
-        _ <- roleAssignmentService.assign(objId, stubId, roleId)
-        idempotent <- roleAssignmentService.list(objId, stubId).compile.toList.idempotently(_.exists(_.id == roleId) shouldBe true)
-      } yield idempotent
-    }
-
-    s"assign role to a $assignTo" in withStubs.use[IO, Assertion] { case (objId, stubId, roleId) =>
-      for {
-       _ <- roleAssignmentService.assign(objId, stubId, roleId).idempotently(_ shouldBe ())
-       check <- roleAssignmentService.check(objId, stubId, roleId)
-      } yield check shouldBe true
-    }
-
-    s"delete $assignTo role assignment" in withStubs.use[IO, Assertion] { case (objId, stubId, roleId) =>
-      for {
-        _ <- roleAssignmentService.delete(objId, stubId, roleId).idempotently(_ shouldBe ())
-        check <- roleAssignmentService.check(objId, stubId, roleId)
-      } yield check shouldBe false
-    }
-
-    s"check $assignTo for role assignment" in withStubs.use[IO, Assertion] { case (objId, stubId, roleId) =>
-      for {
-        _ <- roleAssignmentService.assign(objId, stubId, roleId)
-        idempotent <- roleAssignmentService.check(objId, stubId, roleId).idempotently(_ shouldBe true)
-      } yield idempotent
-    }
-
-    s"check $assignTo for no role assignment" in withStubs.use[IO, Assertion] { case (objId, stubId, roleId) =>
-      for {
-        _ <- roleAssignmentService.delete(objId, stubId, roleId)
-        idempotent <- roleAssignmentService.check(objId, stubId, roleId).idempotently(_ shouldBe false)
-      } yield idempotent
+        _ <- roleService assign role to user
+        _ <- roleService assign role to group
+      } yield (roleService, user, group, role)
     }
   }
-
+  
   s"The $name service should handle role assignment" should {
-    behave like test("group", resourceCreator(keystone.groups)(Group.Create(_)), roleService.roles.groups)
-    behave like test("user", resourceCreator(keystone.users)(User.Create(_, Some(randomName()))), roleService.roles.users)
+    "list assigned roles" in withStubs.use[IO, Assertion] { case (roleService, user, group, role) =>
+      (roleService.listAssignmentsFor(user) ++ roleService.listAssignmentsFor(group)).compile.toList.idempotently { roles =>
+        roles.forall(_.id == role.id) shouldBe true
+      }
+    }
+    "assign roles" in withStubs.use[IO, Assertion] { case (roleService, user, group, role) =>
+      for {
+        _ <- (roleService assign role to user).idempotently(_ shouldBe ())
+        _ <- (roleService assign role to group).idempotently(_ shouldBe ())
+        checkUser <- roleService is role assignedTo user
+        checkGroup <- roleService is role assignedTo group
+      } yield {
+        checkUser shouldBe true
+        checkGroup shouldBe true
+      }
+    }
+    "delete role assignments" in withStubs.use[IO, Assertion] { case (roleService, user, group, role) =>
+      for {
+        _ <- (roleService unassign role from user).idempotently(_ shouldBe ())
+        _ <- (roleService unassign role from group).idempotently(_ shouldBe ())
+        checkUser <- roleService is role assignedTo user
+        checkGroup <- roleService is role assignedTo group
+      } yield {
+        checkUser shouldBe false
+        checkGroup shouldBe false
+      }
+    }
+    "check role assignments" in withStubs.use[IO, Assertion] { case (roleService, user, group, role) =>
+      for {
+        firstCheckUser <- (roleService is role assignedTo user).idempotently(_ shouldBe true)
+        firstCheckGroup <- (roleService is role assignedTo group).idempotently(_ shouldBe true)
+        _ <- roleService unassign role from user
+        _ <- roleService unassign role from group
+        secondCheckUser <- (roleService is role assignedTo user).idempotently(_ shouldBe false)
+        secondCheckGroup <- (roleService is role assignedTo group).idempotently(_ shouldBe false)
+      } yield {
+        // Kinda redundant, I don't know how to implement this properly
+        firstCheckUser shouldBe succeed
+        firstCheckGroup shouldBe succeed
+        secondCheckUser shouldBe succeed
+        secondCheckGroup shouldBe succeed
+      }
+    }
   }
 }

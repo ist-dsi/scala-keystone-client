@@ -75,7 +75,7 @@ object User {
     enabled: Option[Boolean] = None,
   )
 }
-case class User(
+final case class User(
   id: String,
   name: String,
   domainId: String,

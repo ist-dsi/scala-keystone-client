@@ -53,7 +53,7 @@ object Endpoint {
     enabled: Option[Boolean] = None,
   )
 }
-case class Endpoint(
+final case class Endpoint(
   id: String,
   interface: Interface,
   regionId: String,

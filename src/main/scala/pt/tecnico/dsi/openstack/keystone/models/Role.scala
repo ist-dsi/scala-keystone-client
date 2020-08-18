@@ -37,7 +37,7 @@ object Role {
     description: Option[String] = None,
   )
 }
-case class  Role(
+final case class Role(
   id: String,
   name: String,
   description: Option[String],
