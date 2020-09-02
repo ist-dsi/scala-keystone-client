@@ -8,7 +8,7 @@ import org.http4s.Status.{Forbidden, NotFound, Successful}
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
-import pt.tecnico.dsi.openstack.keystone.models.Domain
+import pt.tecnico.dsi.openstack.keystone.models.{Domain, Scope}
 
 final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
   extends CrudService[F, Domain, Domain.Create, Domain.Update](baseUri, "domain", authToken)
@@ -75,7 +75,8 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
   }
   
   /** Allows performing role assignment operations on the domain with `id` */
-  def on(id: String): RoleAssignment[F] = new RoleAssignment(baseUri / "domains" / id, authToken)
+  def on(id: String): RoleAssignment[F] =
+    new RoleAssignment(baseUri, Scope.Domain.id(id), authToken)
   /** Allows performing role assignment operations on `domain`. */
   def on(domain: Domain): RoleAssignment[F] = on(domain.id)
   

@@ -8,7 +8,7 @@ import org.http4s.Status.Conflict
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
-import pt.tecnico.dsi.openstack.keystone.models.{Domain, Project, Role, System}
+import pt.tecnico.dsi.openstack.keystone.models.{Assignment, Domain, Group, GroupAssignment, Project, Role, Scope, System, User, UserAssignment}
 
 final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
   extends CrudService[F, Role, Role.Create, Role.Update](baseUri, "role", authToken)
@@ -24,8 +24,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
       "name" -> name,
       "domain_id" -> domainId,
     )))
-
-
+  
   override def create(create: Role.Create, extraHeaders: Header*): F[Role] = createHandleConflict(create, extraHeaders:_*) {
     def updateIt(existingRole: Role): F[Role] = {
       // Description is the only field that can be different
@@ -55,14 +54,44 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
   }
   
   /** Allows performing role assignment operations on the domain with `id` */
-  def onDomain(id: String): RoleAssignment[F] = new RoleAssignment(baseUri / "domains" / id, authToken)
+  def onDomain(id: String): RoleAssignment[F] =
+    new RoleAssignment(baseUri, Scope.Domain.id(id), authToken)
   /** Allows performing role assignment operations on the project with `id` */
-  def onProject(id: String): RoleAssignment[F] = new RoleAssignment(baseUri / "projects" / id, authToken)
+  def onProject(id: String): RoleAssignment[F] =
+    new RoleAssignment(baseUri, Scope.Project(id), authToken)
   
   /** Allows performing role assignment operations on `domain`. */
   def on(domain: Domain): RoleAssignment[F] = onDomain(domain.id)
   /** Allows performing role assignment operations on `project`. */
   def on(project: Project): RoleAssignment[F] = onDomain(project.id)
   /** Allows performing role assignment operations on system. */
-  def on(@nowarn system: System.type): RoleAssignment[F] = new RoleAssignment(baseUri / "system", authToken)
+  def on(@nowarn system: System.type): RoleAssignment[F] =
+    new RoleAssignment(baseUri, Scope.System(), authToken)
+  
+  def listAssignments(userId: Option[String] = None, groupId: Option[String] = None, roleId: Option[String] = None,
+    domainId: Option[String] = None, projectId: Option[String] = None, system: Option[Boolean] = None,
+    effective: Boolean = false, includeNames: Boolean = false, includeSubtree: Boolean = false): Stream[F, Assignment] = {
+    val query: Vector[(String, Option[String])] = Vector(
+      "user.id" -> userId,
+      "group.id" -> groupId,
+      "role.id" -> roleId,
+      "scope.domain.id" -> domainId,
+      "scope.project.id" -> projectId,
+      "scope.system" -> system.map(_.toString),
+    ).filter { case (_, value) => value.isDefined } ++
+      Option.when(effective)("effective" -> Option.empty) ++
+      Option.when(includeNames)("include_names" -> Option.empty) ++
+      Option.when(includeSubtree)("include_subtree" -> Option.empty)
+    
+    list[Assignment]("role_assignments", baseUri / "role_assignments", Query.fromVector(query))
+  }
+  
+  def listAssignmentsForUser(id: String): Stream[F, UserAssignment] =
+    listAssignments(userId = Some(id)).asInstanceOf[Stream[F, UserAssignment]]
+  def listAssignmentsForGroup(id: String): Stream[F, GroupAssignment] =
+    listAssignments(groupId = Some(id)).asInstanceOf[Stream[F, GroupAssignment]]
+  def listAssignmentsForRole(id: String): Stream[F, Assignment] = listAssignments(roleId = Some(id))
+  def listAssignments(user: User): Stream[F, UserAssignment] = listAssignmentsForUser(user.id)
+  def listAssignments(group: Group): Stream[F, GroupAssignment] = listAssignmentsForGroup(group.id)
+  def listAssignments(role: Role): Stream[F, Assignment] = listAssignmentsForRole(role.id)
 }
