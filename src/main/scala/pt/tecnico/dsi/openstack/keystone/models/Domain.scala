@@ -59,6 +59,5 @@ final case class Domain(
   description: Option[String] = None,
   links: List[Link] = List.empty,
 ) extends Identifiable with RoleAssigner {
-  def roleAssignment[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = client.domains.on(this)
+  def roleAssignment[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = client.roles.on(this)
 }
-

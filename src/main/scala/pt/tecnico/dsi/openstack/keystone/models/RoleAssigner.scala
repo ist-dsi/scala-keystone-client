@@ -5,53 +5,53 @@ import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
 
 /**
- * @define context
+ * @define scope
  */
 trait RoleAssigner {
-  /** The role assignment for $context */
+  /** The role assignment for $scope */
   def roleAssignment[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F]
   
   /**
-   * Lists the role assignments for the user with `id` on $context.
+   * Lists the role assignments for the user with `id` on $scope.
    * @example
    * {{{
-   *   $context listAssignmentsFor "user-id"
+   *   $scope listAssignmentsFor "user-id"
    * }}}
    */
   def listAssignmentsForUser[F[_]: KeystoneClient](id: String): Stream[F, Role] = roleAssignment.listAssignmentsForUser(id)
   /**
-   * Lists the role assignments for the group with `id` on $context.
+   * Lists the role assignments for the group with `id` on $scope.
    * @example
    * {{{
-   *   $context listAssignmentsFor "group-id"
+   *   $scope listAssignmentsFor "group-id"
    * }}}
    */
   def listAssignmentsForGroup[F[_]: KeystoneClient](id: String): Stream[F, Role] = roleAssignment.listAssignmentsForGroup(id)
   /**
-   * Lists the role assignments for `user` on $context.
+   * Lists the role assignments for `user` on $scope.
    * @example
    * {{{
    *   var user: User = ???
-   *   $context listAssignmentsFor user
+   *   $scope listAssignmentsFor user
    * }}}
    */
   def listAssignmentsFor[F[_]: KeystoneClient](user: User): Stream[F, Role] = listAssignmentsFor(user)
   /**
-   * Lists the role assignments for `group` on $context.
+   * Lists the role assignments for `group` on $scope.
    * @example
    * {{{
    *   var group: Group = ???
-   *   $context listAssignmentsFor group
+   *   $scope listAssignmentsFor group
    * }}}
    */
   def listAssignmentsFor[F[_]: KeystoneClient](group: Group): Stream[F, Role] = listAssignmentsFor(group)
-  
+
   /**
-   * Allows assigning the role with `roleId` to user/group on $context.
+   * Allows assigning the role with `roleId` to user/group on $scope.
    * @example
    * {{{
    *   var user: User = ???
-   *   $context assign "role-id" to user
+   *   $scope assign "role-id" to user
    * }}}
    */
   def assign[F[_]: KeystoneClient](roleId: String): RoleAssignment[F]#Assign = {
@@ -59,22 +59,22 @@ trait RoleAssigner {
     new rs.Assign(roleId)
   }
   /**
-   * Allows assigning the `role` to user/group on $context.
+   * Allows assigning the `role` to user/group on $scope.
    * @example
    * {{{
    *   var user: User = ???
    *   var role: Role = ???
-   *   $context assign role to user
+   *   $scope assign role to user
    * }}}
    */
   def assign[F[_]: KeystoneClient](role: Role): RoleAssignment[F]#Assign = assign(role.id)
   
   /**
-   * Allows unassigning the role with `roleId` to user/group on $context.
+   * Allows unassigning the role with `roleId` to user/group on $scope.
    * @example
    * {{{
    *   var user: User = ???
-   *   $context unassign "role-id" to user
+   *   $scope unassign "role-id" to user
    * }}}
    */
   def unassign[F[_]: KeystoneClient](roleId: String): RoleAssignment[F]#Unassign = {
@@ -82,22 +82,22 @@ trait RoleAssigner {
     new rs.Unassign(roleId)
   }
   /**
-   * Allows unassigning the `role` from user/group on $context.
+   * Allows unassigning the `role` from user/group on $scope.
    * @example
    * {{{
    *   var user: User = ???
    *   var role: Role = ???
-   *   $context unassign role from user
+   *   $scope unassign role from user
    * }}}
    */
   def unassign[F[_]: KeystoneClient](role: Role): RoleAssignment[F]#Unassign = unassign(role.id)
   
   /**
-   * Allows checking if the role with `roleId` is assigned to user/group on $context.
+   * Allows checking if the role with `roleId` is assigned to user/group on $scope.
    * @example
    * {{{
    *   var user: User = ???
-   *   $context is "role-id" assignedTo user
+   *   $scope is "role-id" assignedTo user
    * }}}
    */
   def is[F[_]: KeystoneClient](roleId: String): RoleAssignment[F]#Is = {
@@ -105,12 +105,12 @@ trait RoleAssigner {
     new rs.Is(roleId)
   }
   /**
-   * Allows checking if `role` is assigned to user/group on $context.
+   * Allows checking if `role` is assigned to user/group on $scope.
    * @example
    * {{{
    *   var user: User = ???
    *   var role: Role = ???
-   *   $context is role assignedTo user
+   *   $scope is role assignedTo user
    * }}}
    */
   def is[F[_]: KeystoneClient](role: Role): RoleAssignment[F]#Is = is(role.id)

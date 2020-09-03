@@ -8,7 +8,7 @@ import org.http4s.Status.Conflict
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
-import pt.tecnico.dsi.openstack.keystone.models.{Project, Session}
+import pt.tecnico.dsi.openstack.keystone.models.{Project, Scope, Session}
 
 final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session, authToken: Header)
   extends CrudService[F, Project, Project.Create, Project.Update](baseUri, "project", authToken)
@@ -70,7 +70,8 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session, authTok
   }
   
   /** Allows performing role assignment operations on the project with `id` */
-  def on(id: String): RoleAssignment[F] = new RoleAssignment(baseUri / "projects" / id, authToken)
+  def on(id: String): RoleAssignment[F] =
+    new RoleAssignment(baseUri, Scope.Project(id), authToken)
   /** Allows performing role assignment operations on `project`. */
   def on(project: Project): RoleAssignment[F] = on(project.id)
 

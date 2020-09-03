@@ -82,5 +82,5 @@ final case class Project(
   tags: List[String],
   links: List[Link] = List.empty,
 ) extends Identifiable with RoleAssigner {
-  override def roleAssignment[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = client.projects.on(this)
+  override def roleAssignment[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = client.roles.on(this)
 }
