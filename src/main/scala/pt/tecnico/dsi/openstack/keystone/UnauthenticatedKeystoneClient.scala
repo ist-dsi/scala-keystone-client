@@ -8,10 +8,9 @@ import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json, Printer}
 import org.http4s.Method.POST
 import org.http4s.Status.Successful
-import org.http4s.Uri.Path
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
-import org.http4s.{EntityDecoder, EntityEncoder, Header, Uri, circe}
+import org.http4s._
 import org.typelevel.ci.CIString
 import pt.tecnico.dsi.openstack.keystone.UnauthenticatedKeystoneClient.Credential
 import pt.tecnico.dsi.openstack.keystone.models.{Scope, Session}
@@ -100,11 +99,8 @@ class UnauthenticatedKeystoneClient[F[_]](baseUri: Uri)(implicit client: Client[
     val jsonPrinter: Printer = Printer.noSpaces.copy(dropNullValues = true)
     implicit def jsonEncoder[A: Encoder]: EntityEncoder[F, A] = circe.jsonEncoderWithPrinterOf(jsonPrinter)
     implicit def jsonDecoder[A: Decoder]: EntityDecoder[F, A] = circe.accumulatingJsonOf
-
-    val uri: Uri = {
-      val lastSegment = baseUri.path.dropEndsWithSlash.segments.lastOption
-      if (lastSegment.contains(Path.Segment("v3"))) baseUri else baseUri / "v3"
-    }
+  
+    val uri: Uri = if (baseUri.path.dropEndsWithSlash.toString.endsWith("v3")) baseUri else baseUri / "v3"
     POST( authBody(method, scope), uri / "auth" / "tokens").flatMap(client.run(_).use[F, (Header, Session)] {
       case Successful(response) =>
         response.as[Session].flatMap { session =>

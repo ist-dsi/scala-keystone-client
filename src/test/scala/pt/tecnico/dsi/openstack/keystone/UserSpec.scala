@@ -3,7 +3,7 @@ package pt.tecnico.dsi.openstack.keystone
 import cats.effect.IO
 import org.scalatest.Assertion
 import pt.tecnico.dsi.openstack.keystone.models.User
-import pt.tecnico.dsi.openstack.keystone.services.{Users, domainIdFromScope}
+import pt.tecnico.dsi.openstack.keystone.services.Users
 
 class UserSpec extends CrudSpec[User, User.Create, User.Update]("user") with EnableDisableSpec[User] {
   override def service: Users[IO] = keystone.users
@@ -17,7 +17,7 @@ class UserSpec extends CrudSpec[User, User.Create, User.Update]("user") with Ena
     model.enabled shouldBe create.enabled
     // Since we didn't specified the domainId, and the token we used to authenticate isn't domain-scoped
     // the user will be created with domainId = default
-    model.domainId shouldBe domainIdFromScope(keystone.session.scope)
+    model.domainId shouldBe keystone.session.scopedDomainId()
   }
 
   override def updateStub: User.Update = User.Update(Some(randomName()), Some(randomName()), Some(randomName()), Some(false))

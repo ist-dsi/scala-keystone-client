@@ -2,8 +2,8 @@ package pt.tecnico.dsi.openstack.keystone
 
 import cats.effect.IO
 import org.scalatest.Assertion
-import pt.tecnico.dsi.openstack.keystone.services.{Projects, RoleAssignment, domainIdFromScope}
 import pt.tecnico.dsi.openstack.keystone.models.Project
+import pt.tecnico.dsi.openstack.keystone.services.{Projects, RoleAssignment}
 
 class ProjectSpec extends CrudSpec[Project, Project.Create, Project.Update]("project")
   with RoleAssignmentSpec[Project] with EnableDisableSpec[Project] {
@@ -20,8 +20,8 @@ class ProjectSpec extends CrudSpec[Project, Project.Create, Project.Update]("pro
     model.enabled shouldBe create.enabled
     // Since we didn't specified the domainId, and the token we used to authenticate isn't domain-scoped
     // the project will be created with domainId = default, which will cause the parentId to be default as well
-    model.domainId shouldBe domainIdFromScope(keystone.session.scope)
-    model.parentId shouldBe domainIdFromScope(keystone.session.scope)
+    model.domainId shouldBe keystone.session.scopedDomainId()
+    model.parentId shouldBe keystone.session.scopedDomainId()
     model.tags shouldBe create.tags
   }
 

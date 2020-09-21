@@ -1,5 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
+import cats.syntax.flatMap._
 import fs2.Stream
 import org.http4s.Query
 import pt.tecnico.dsi.openstack.common.models.Identifiable
@@ -27,7 +28,12 @@ trait UniqueWithinDomain[F[_], T <: Identifiable] { this: CrudService[F, T, _, _
     */
   def apply(name: String, domainId: String): F[T] = {
     // The name is unique within the owning domain.
-    list(Query.fromPairs("name" -> name, "domain_id" -> domainId)).compile.lastOrError
+    get(name, domainId).flatMap {
+      case Some(t) => F.pure(t)
+      case None =>
+        val tName = this.getClass.getSimpleName.dropRight(1).toLowerCase
+        F.raiseError(new NoSuchElementException(s"""Could not find ${tName} "$name" with domain id"$domainId""""))
+    }
   }
   
   /**

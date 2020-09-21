@@ -1,12 +1,11 @@
 package pt.tecnico.dsi.openstack.keystone
 
 import cats.effect.{IO, Resource}
-import org.scalatest.{Assertion, BeforeAndAfterAll}
+import org.scalatest.Assertion
 import pt.tecnico.dsi.openstack.keystone.models.{Endpoint, Interface, Region, Service}
 import pt.tecnico.dsi.openstack.keystone.services.Endpoints
 
-class EndpointSpec extends CrudSpec[Endpoint, Endpoint.Create, Endpoint.Update]("endpoint")
-  with BeforeAndAfterAll with EnableDisableSpec[Endpoint] {
+class EndpointSpec extends CrudSpec[Endpoint, Endpoint.Create, Endpoint.Update]("endpoint") with EnableDisableSpec[Endpoint] {
   override def service: Endpoints[IO] = keystone.endpoints
 
   val stubsResource: Resource[IO, (String, String)] = for {
@@ -16,7 +15,10 @@ class EndpointSpec extends CrudSpec[Endpoint, Endpoint.Create, Endpoint.Update](
 
   // This way we use the same Service and Region for every test, and make the logs smaller and easier to debug.
   val ((serviceId, regionId), stubsDelete) = stubsResource.allocated.unsafeRunSync()
-  override protected def afterAll(): Unit = stubsDelete.unsafeRunSync()
+  override protected def afterAll(): Unit = {
+    stubsDelete.unsafeRunSync()
+    super.afterAll()
+  }
 
   override def getEnabled(model: Endpoint): Boolean = model.enabled
 

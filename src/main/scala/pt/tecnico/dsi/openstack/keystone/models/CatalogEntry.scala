@@ -14,7 +14,6 @@ object CatalogEntry {
     urls <- c.get[List[Url]]("endpoints")
   } yield CatalogEntry(tpe, serviceId, name, urls.map(url => Endpoint(url.id, url.interface, url.regionId, url.url, serviceId)))
 }
-
 final case class CatalogEntry(`type`: String, serviceId: String, serviceName: String, endpoints: List[Endpoint]) {
   lazy val urisPerInterfacePerRegion: Map[Interface, Map[String, String]] = endpoints.groupBy(_.interface).view.mapValues { perInterface =>
     perInterface.groupMap(_.regionId)(_.url).view.mapValues(_.head).toMap

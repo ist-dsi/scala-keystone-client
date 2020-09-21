@@ -67,7 +67,6 @@ object Project {
     tags: Option[List[String]] = None,
   )
 }
-
 /**
  * @define context project
  */

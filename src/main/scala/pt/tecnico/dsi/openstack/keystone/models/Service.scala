@@ -43,8 +43,7 @@ object Service {
     enabled: Option[Boolean] = None,
   )
 }
-
-final case class Service private[keystone] (
+final case class Service(
   id: String,
   name: String,
   `type`: String,

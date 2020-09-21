@@ -9,8 +9,6 @@ import io.circe.{Codec, Decoder, Encoder}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
-// TODO extra, options, federated
-
 object User {
   /*The decoder must handle the user returned from GET /v3/users/${id} and the user return from the /v3/auth/tokens
    The user from the tokens does not have a field named domain_id. Instead it has:

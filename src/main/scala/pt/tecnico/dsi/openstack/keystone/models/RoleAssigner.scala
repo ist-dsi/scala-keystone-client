@@ -27,6 +27,7 @@ trait RoleAssigner {
    * }}}
    */
   def listAssignmentsForGroup[F[_]: KeystoneClient](id: String): Stream[F, Role] = roleAssignment.listAssignmentsForGroup(id)
+  
   /**
    * Lists the role assignments for `user` on $scope.
    * @example
@@ -35,7 +36,7 @@ trait RoleAssigner {
    *   $scope listAssignmentsFor user
    * }}}
    */
-  def listAssignmentsFor[F[_]: KeystoneClient](user: User): Stream[F, Role] = listAssignmentsFor(user)
+  def listAssignmentsFor[F[_]: KeystoneClient](user: User): Stream[F, Role] = listAssignmentsForUser(user.id)
   /**
    * Lists the role assignments for `group` on $scope.
    * @example
@@ -44,7 +45,7 @@ trait RoleAssigner {
    *   $scope listAssignmentsFor group
    * }}}
    */
-  def listAssignmentsFor[F[_]: KeystoneClient](group: Group): Stream[F, Role] = listAssignmentsFor(group)
+  def listAssignmentsFor[F[_]: KeystoneClient](group: Group): Stream[F, Role] = listAssignmentsForGroup(group.id)
 
   /**
    * Allows assigning the role with `roleId` to user/group on $scope.

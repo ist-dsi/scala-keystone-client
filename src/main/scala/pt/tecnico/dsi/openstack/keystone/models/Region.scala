@@ -35,7 +35,6 @@ object Region {
     parentRegionId: Option[String] = None,
   )
 }
-
 final case class Region(
   id: String,
   description: Option[String],

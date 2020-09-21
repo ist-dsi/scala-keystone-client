@@ -67,6 +67,7 @@ class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope:
     * }}}
     */
   def listAssignmentsForGroup(id: String): Stream[F, Role] = listAssignmentsFor("groups", id)
+  
   /**
     * Lists the role assignments for `user` on the given context.
     * @example

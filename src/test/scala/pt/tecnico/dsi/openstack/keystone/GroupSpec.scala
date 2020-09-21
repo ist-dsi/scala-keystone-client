@@ -3,7 +3,7 @@ package pt.tecnico.dsi.openstack.keystone
 import cats.effect.IO
 import org.scalatest.Assertion
 import pt.tecnico.dsi.openstack.keystone.models.Group
-import pt.tecnico.dsi.openstack.keystone.services.{Groups, domainIdFromScope}
+import pt.tecnico.dsi.openstack.keystone.services.Groups
 
 class GroupSpec extends CrudSpec[Group, Group.Create, Group.Update]("group") {
   override def service: Groups[IO] = keystone.groups
@@ -14,7 +14,7 @@ class GroupSpec extends CrudSpec[Group, Group.Create, Group.Update]("group") {
     model.description shouldBe create.description
     // Since we didn't specified the domainId, and the token we used to authenticate isn't domain-scoped
     // the group will be created with domainId = default
-    model.domainId shouldBe domainIdFromScope(keystone.session.scope)
+    model.domainId shouldBe keystone.session.scopedDomainId()
   }
 
   override def updateStub: Group.Update = Group.Update(name = Some(randomName()), Some("a better and improved description"))

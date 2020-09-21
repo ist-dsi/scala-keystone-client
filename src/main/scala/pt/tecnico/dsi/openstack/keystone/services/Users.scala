@@ -70,7 +70,7 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session, authToken:
   }
 
   override def create(create: User.Create, extraHeaders: Header*): F[User] = createHandleConflict(create, extraHeaders:_*) {
-    val domainId = create.domainId.getOrElse(domainIdFromScope(session.scope))
+    val domainId = create.domainId.getOrElse(session.scopedDomainId())
     // We got a Conflict so we must be able to find the existing User
     apply(create.name, domainId).flatMap { existingUser =>
       // TODO: should we always update because of the password?

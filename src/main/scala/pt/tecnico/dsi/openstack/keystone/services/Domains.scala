@@ -34,7 +34,10 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
     */
   def applyByName(name: String): F[Domain] = {
     // A domain name is globally unique across all domains.
-    list(Query.fromPairs("name" -> name)).compile.lastOrError
+    getByName(name).flatMap {
+      case Some(domain) => F.pure(domain)
+      case None => F.raiseError(new NoSuchElementException(s"""Could not find domain "$name""""))
+    }
   }
   /**
    * Get detailed information about the domain specified by name.

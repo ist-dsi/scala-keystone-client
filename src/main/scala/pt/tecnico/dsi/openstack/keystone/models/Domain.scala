@@ -48,7 +48,6 @@ object Domain {
     enabled: Option[Boolean] = None,
   )
 }
-
 /**
  * @define context domain
  */

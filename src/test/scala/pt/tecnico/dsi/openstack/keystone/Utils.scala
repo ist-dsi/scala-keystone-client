@@ -52,7 +52,7 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   def withRandomName[T](f: String => IO[T]): IO[T] = IO.delay(randomName()).flatMap(f)
 
   def resourceCreator[R <: Identifiable, Create](service: CrudService[IO, R, Create, _])(create: String => Create): Resource[IO, R] = {
-    Resource.make(withRandomName(name => service.create(create(name))))(model => service.delete(model.id))
+    Resource.make(withRandomName(name => service(create(name))))(model => service.delete(model.id))
   }
 
   implicit class RichIO[T](io: IO[T]) {

@@ -59,7 +59,7 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session, authTok
         case None => create.parentId match {
           // If the parent project doesn't exist the initial POST (performed by the createHandleConflict) will already have thrown an error
           case Some(parentId) => apply(parentId).map(project => project.domainId)
-          case None => Sync[F].pure(domainIdFromScope(session.scope))
+          case None => Sync[F].pure(session.scopedDomainId())
         }
       }
       computeDomainId.flatMap { domainId =>

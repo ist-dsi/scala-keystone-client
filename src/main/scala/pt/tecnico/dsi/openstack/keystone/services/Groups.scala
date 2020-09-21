@@ -26,7 +26,7 @@ final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session, authToken
     )))
 
   override def create(create: Group.Create, extraHeaders: Header*): F[Group] = createHandleConflict(create, extraHeaders:_*) {
-    val domainId = create.domainId.getOrElse(domainIdFromScope(session.scope))
+    val domainId = create.domainId.getOrElse(session.scopedDomainId())
     // We got a Conflict so we must be able to find the existing Group
     apply(create.name, domainId).flatMap { existingGroup =>
       // Description is the only field that can be different
