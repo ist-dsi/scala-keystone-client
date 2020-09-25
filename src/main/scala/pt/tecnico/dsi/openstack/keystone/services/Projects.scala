@@ -10,8 +10,8 @@ import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{Project, Scope, Session}
 
-final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session, authToken: Header)
-  extends CrudService[F, Project, Project.Create, Project.Update](baseUri, "project", authToken)
+final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
+  extends CrudService[F, Project, Project.Create, Project.Update](baseUri, "project", session.authToken)
   with UniqueWithinDomain[F, Project]
   with EnableDisableEndpoints[F, Project] {
 
@@ -34,12 +34,16 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session, authTok
     )))
 
   override def create(create: Project.Create, extraHeaders: Header*): F[Project] = createHandleConflict(create, extraHeaders:_*) {
-    def updateIt(existingProject: Project): F[Project] = {
-      if (existingProject.description != create.description || existingProject.enabled != create.enabled || existingProject.tags != create.tags) {
-        val updated = Project.Update(description = create.description, enabled = Some(create.enabled), tags = Some(create.tags))
-        update(existingProject.id, updated, extraHeaders:_*)
+    def updateIt(existing: Project): F[Project] = {
+      if (existing.description != create.description || existing.enabled != create.enabled || existing.tags != create.tags) {
+        val updated = Project.Update(
+          description = if (existing.description != create.description) create.description else None,
+          enabled = Option.when(existing.enabled != create.enabled)(create.enabled),
+          tags = Option.when(existing.tags != create.tags)(create.tags),
+        )
+        update(existing.id, updated, extraHeaders:_*)
       } else {
-        Sync[F].pure(existingProject)
+        Sync[F].pure(existing)
       }
     }
 
@@ -71,7 +75,7 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session, authTok
   
   /** Allows performing role assignment operations on the project with `id` */
   def on(id: String): RoleAssignment[F] =
-    new RoleAssignment(baseUri, Scope.Project(id), authToken)
+    new RoleAssignment(baseUri, Scope.Project(id), session)
   /** Allows performing role assignment operations on `project`. */
   def on(project: Project): RoleAssignment[F] = on(project.id)
 

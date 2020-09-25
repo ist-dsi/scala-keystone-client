@@ -1,10 +1,14 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
 import java.time.OffsetDateTime
+import cats.effect.Sync
 import io.circe.{Decoder, HCursor}
+import org.http4s.client.Client
+import org.http4s.{Header, Uri}
 
 object Session {
-  implicit val decoder: Decoder[Session] = { cursor: HCursor =>
+  // Not implicit because otherwise the compiler interprets it as an implicit conversion
+  def decoder(authToken: Header): Decoder[Session] = { cursor: HCursor =>
     val tokenCursor = cursor.downField("token")
     for {
       user <- tokenCursor.get[User]("user")
@@ -14,7 +18,7 @@ object Session {
       roles <- tokenCursor.getOrElse[List[Role]]("roles")(List.empty)
       catalog <- tokenCursor.getOrElse[List[CatalogEntry]]("catalog")(List.empty)
       scope <- tokenCursor.as[Scope] // The sole reason for this handcrafted decoder
-    } yield Session(user, expiresAt, issuedAt, auditIds, roles, catalog, scope)
+    } yield Session(user, expiresAt, issuedAt, auditIds, roles, catalog, scope, authToken)
   }
 }
 final case class Session(
@@ -25,10 +29,8 @@ final case class Session(
   roles: List[Role] = List.empty,
   catalog: List[CatalogEntry] = List.empty,
   scope: Scope,
+  authToken: Header,
 ) {
-  // For a given type (compute, network, etc) the catalog only has one CatalogEntry so we use .head to "drop the list"
-  lazy val catalogPerType: Map[String, CatalogEntry] = catalog.groupBy(_.`type`).view.mapValues(_.head).toMap
-  
   /** @return the project id if the session is Project scoped. */
   def scopedProjectId: Option[String] = scope match {
     case Scope.Project(id, _, _) => Some(id)
@@ -50,7 +52,34 @@ final case class Session(
     }
   }
   
-  def urlOf(`type`: String, region: String): Option[String] = catalog.collectFirst {
-    case entry @ CatalogEntry(`type`, _, _, _) => entry.urlOf(Interface.Public, region)
-  }.flatten
+  /**
+   * Builds a Openstack service client. Returns an Either because the catalog might not have the request service type,
+   * region, or interface.
+   * Example:
+   * {{{
+   *   val neutron: Either[String, NeutronClient[IO]] = keystone.session.clientBuilder(NeutronClient, "RegionA")
+   * }}}
+   * @param builder a builder for a specific Openstack client
+   * @param region the region for which to get the service url from the catalog
+   * @param interface the interface for which to get the service url from the catalog
+   */
+  def clientBuilder[F[_]: Sync: Client](builder: ClientBuilder, region: String,
+    interface: Interface = Interface.Public): Either[String, builder.OpenstackClient[F]] = for {
+    entry <- catalog.find(_.`type` == builder.`type`).toRight(s"""Could not find "${builder.`type`}" service in the catalog""")
+    publicUrls <- entry.urlsOf(interface).toRight(s"""Service "${builder.`type`}" does not have $interface endpoints""")
+    regionUrl <- publicUrls.get(region).toRight(s"""Service "${builder.`type`}" does not have endpoints for region $region""")
+    // Openstack tries to be clever and for some services appends the project id to the **public** url
+    // The clients are expecting a clean uri, since they can be used for administrative purposes
+    strippedUrlString = scopedProjectId.map(projectId => regionUrl.stripSuffix(s"/$projectId")).getOrElse(regionUrl)
+    uri <- Uri.fromString(strippedUrlString).left.map(_.message)
+  } yield builder(uri, this)
+}
+
+trait ClientBuilder {
+  /** The concrete Openstack client type this `ClientBuilder` will create. */
+  type OpenstackClient[F[_]]
+  /** The catalog entry `type` for the `OpenstackClient`. Eg: for the neutron client it would be "network" */
+  val `type`: String
+  
+  def apply[F[_]: Sync: Client](baseUri: Uri, session: Session): OpenstackClient[F]
 }

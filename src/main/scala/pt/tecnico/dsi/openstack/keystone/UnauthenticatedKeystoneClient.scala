@@ -101,15 +101,15 @@ class UnauthenticatedKeystoneClient[F[_]](baseUri: Uri)(implicit client: Client[
     implicit def jsonDecoder[A: Decoder]: EntityDecoder[F, A] = circe.accumulatingJsonOf
   
     val uri: Uri = if (baseUri.path.dropEndsWithSlash.toString.endsWith("v3")) baseUri else baseUri / "v3"
-    POST( authBody(method, scope), uri / "auth" / "tokens").flatMap(client.run(_).use[F, (Header, Session)] {
+    POST(authBody(method, scope), uri / "auth" / "tokens").flatMap(client.run(_).use[F, Session] {
       case Successful(response) =>
-        response.as[Session].flatMap { session =>
-          response.headers.get(CIString("X-Subject-Token")) match {
-            case Some(token) => F.pure((Header("X-Auth-Token", token.value), session))
-            case None => F.raiseError(new IllegalStateException("Could not get X-Subject-Token from authentication response."))
-          }
+        response.headers.get(CIString("X-Subject-Token")) match {
+          case None => F.raiseError(new IllegalStateException("Could not get X-Subject-Token from authentication response."))
+          case Some(token) =>
+            implicit val sessionDecoder: EntityDecoder[F, Session] = jsonDecoder(Session.decoder(Header("X-Auth-Token", token.value)))
+            response.as[Session]
         }
       case failedResponse => F.raiseError(new Throwable(s"unexpected HTTP status: ${failedResponse.status}"))
-    }).map { case (authToken, session) => new KeystoneClient(baseUri, session, authToken) }
+    }).map(new KeystoneClient(baseUri, _))
   }
 }

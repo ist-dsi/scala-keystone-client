@@ -1,19 +1,19 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
 import cats.effect.Sync
-import cats.syntax.functor._
 import cats.syntax.flatMap._
+import cats.syntax.functor._
 import fs2.Stream
 import org.http4s.Method.{HEAD, PUT}
 import org.http4s.client.Client
-import org.http4s.{Header, Query, Uri}
+import org.http4s.{Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.Service
-import pt.tecnico.dsi.openstack.keystone.models.{Assignment, Group, Role, Scope, User}
+import pt.tecnico.dsi.openstack.keystone.models._
 
 // Dotty union types would make this file simpler
 
-class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope: Scope, authToken: Header)
-  extends Service[F](authToken) { self =>
+class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope: Scope, session: Session)
+  extends Service[F](session.authToken) { self =>
   import dsl._
   
   val roleAssignmentsApiQuery: Query = scope match {

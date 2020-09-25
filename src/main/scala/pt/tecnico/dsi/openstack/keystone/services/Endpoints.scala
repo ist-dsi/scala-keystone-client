@@ -3,12 +3,12 @@ package pt.tecnico.dsi.openstack.keystone.services
 import cats.effect.Sync
 import fs2.Stream
 import org.http4s.client.Client
-import org.http4s.{Header, Query, Uri}
+import org.http4s.{Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
-import pt.tecnico.dsi.openstack.keystone.models.Endpoint
+import pt.tecnico.dsi.openstack.keystone.models.{Endpoint, Session}
 
-final class Endpoints[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
-  extends CrudService[F, Endpoint, Endpoint.Create, Endpoint.Update](baseUri, "endpoint", authToken)
+final class Endpoints[F[_]: Sync: Client](baseUri: Uri, session: Session)
+  extends CrudService[F, Endpoint, Endpoint.Create, Endpoint.Update](baseUri, "endpoint", session.authToken)
   with EnableDisableEndpoints[F, Endpoint] {
   /**
     * @param interface filters the response by an interface.

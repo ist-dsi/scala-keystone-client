@@ -10,8 +10,8 @@ import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{Group, Project, Session, User}
 
-final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session, authToken: Header)
-  extends CrudService[F, User, User.Create, User.Update](baseUri, "user", authToken)
+final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session)
+  extends CrudService[F, User, User.Create, User.Update](baseUri, "user", session.authToken)
   with UniqueWithinDomain[F, User]
   with EnableDisableEndpoints[F, User] {
 
@@ -72,13 +72,17 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session, authToken:
   override def create(create: User.Create, extraHeaders: Header*): F[User] = createHandleConflict(create, extraHeaders:_*) {
     val domainId = create.domainId.getOrElse(session.scopedDomainId())
     // We got a Conflict so we must be able to find the existing User
-    apply(create.name, domainId).flatMap { existingUser =>
-      // TODO: should we always update because of the password?
-      if (existingUser.defaultProjectId != create.defaultProjectId || existingUser.enabled != create.enabled) {
-        val updated = User.Update(password = create.password, defaultProjectId = create.defaultProjectId, enabled = Some(create.enabled))
-        update(existingUser.id, updated, extraHeaders:_*)
+    apply(create.name, domainId).flatMap { existing =>
+      // TODO: should we always update because of the password? We could try to authenticate with the user to check if the password is valid
+      if (existing.defaultProjectId != create.defaultProjectId || existing.enabled != create.enabled) {
+        val updated = User.Update(
+          password = create.password,
+          defaultProjectId = if (existing.defaultProjectId != create.defaultProjectId) create.defaultProjectId else None,
+          enabled = Option.when(existing.enabled != create.enabled)(create.enabled),
+        )
+        update(existing.id, updated, extraHeaders:_*)
       } else {
-        Sync[F].pure(existingUser)
+        Sync[F].pure(existing)
       }
     }
   }

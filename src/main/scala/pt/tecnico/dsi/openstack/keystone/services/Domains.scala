@@ -8,10 +8,10 @@ import org.http4s.Status.{Forbidden, NotFound, Successful}
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
-import pt.tecnico.dsi.openstack.keystone.models.{Domain, Scope}
+import pt.tecnico.dsi.openstack.keystone.models.{Domain, Scope, Session}
 
-final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
-  extends CrudService[F, Domain, Domain.Create, Domain.Update](baseUri, "domain", authToken)
+final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
+  extends CrudService[F, Domain, Domain.Create, Domain.Update](baseUri, "domain", session.authToken)
   with EnableDisableEndpoints[F, Domain] {
   import dsl._
 
@@ -50,9 +50,15 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
 
   override def create(create: Domain.Create, extraHeaders: Header*): F[Domain] = createHandleConflict(create, extraHeaders:_*) {
     // We got a conflict so a domain with this name must already exist
-    applyByName(create.name).flatMap { existingDomain =>
-      val updated = Domain.Update(description = create.description, enabled = Some(create.enabled))
-      update(existingDomain.id, updated)
+    applyByName(create.name).flatMap { existing =>
+      if (existing.description != create.description || existing.enabled != create.enabled) {
+        update(existing.id, Domain.Update(
+          description = if (existing.description != create.description) create.description else None,
+          enabled = Option.when(existing.enabled != create.enabled)(create.enabled),
+        ))
+      } else {
+        Sync[F].pure(existing)
+      }
     }
   }
 
@@ -79,7 +85,7 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
   
   /** Allows performing role assignment operations on the domain with `id` */
   def on(id: String): RoleAssignment[F] =
-    new RoleAssignment(baseUri, Scope.Domain.id(id), authToken)
+    new RoleAssignment(baseUri, Scope.Domain.id(id), session)
   /** Allows performing role assignment operations on `domain`. */
   def on(domain: Domain): RoleAssignment[F] = on(domain.id)
   

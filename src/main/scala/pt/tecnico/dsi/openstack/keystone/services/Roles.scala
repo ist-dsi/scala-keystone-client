@@ -8,10 +8,10 @@ import org.http4s.Status.Conflict
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
-import pt.tecnico.dsi.openstack.keystone.models.{Assignment, Domain, Group, GroupAssignment, Project, Role, Scope, System, User, UserAssignment}
+import pt.tecnico.dsi.openstack.keystone.models.{Assignment, Domain, Group, GroupAssignment, Project, Role, Scope, Session, System, User, UserAssignment}
 
-final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
-  extends CrudService[F, Role, Role.Create, Role.Update](baseUri, "role", authToken)
+final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
+  extends CrudService[F, Role, Role.Create, Role.Update](baseUri, "role", session.authToken)
   with UniqueWithinDomain[F, Role] {
 
   /**
@@ -26,14 +26,12 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
     )))
   
   override def create(create: Role.Create, extraHeaders: Header*): F[Role] = createHandleConflict(create, extraHeaders:_*) {
-    def updateIt(existingRole: Role): F[Role] = {
-      // Description is the only field that can be different
-      if (existingRole.description != create.description) {
-        update(existingRole.id, Role.Update(description = create.description), extraHeaders:_*)
+    def updateIt(existing: Role): F[Role] =
+      if (existing.description != create.description) {
+        update(existing.id, Role.Update(description = create.description), extraHeaders:_*)
       } else {
-        Sync[F].pure(existingRole)
+        Sync[F].pure(existing)
       }
-    }
 
     create.domainId match {
       case Some(domainId) =>
@@ -55,10 +53,10 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
   
   /** Allows performing role assignment operations on the domain with `id` */
   def onDomain(id: String): RoleAssignment[F] =
-    new RoleAssignment(baseUri, Scope.Domain.id(id), authToken)
+    new RoleAssignment(baseUri, Scope.Domain.id(id), session)
   /** Allows performing role assignment operations on the project with `id` */
   def onProject(id: String): RoleAssignment[F] =
-    new RoleAssignment(baseUri, Scope.Project(id), authToken)
+    new RoleAssignment(baseUri, Scope.Project(id), session)
   
   /** Allows performing role assignment operations on `domain`. */
   def on(domain: Domain): RoleAssignment[F] = onDomain(domain.id)
@@ -66,7 +64,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, authToken: Header)
   def on(project: Project): RoleAssignment[F] = onDomain(project.id)
   /** Allows performing role assignment operations on system. */
   def on(@nowarn system: System.type): RoleAssignment[F] =
-    new RoleAssignment(baseUri, Scope.System(), authToken)
+    new RoleAssignment(baseUri, Scope.System(), session)
   
   def listAssignments(userId: Option[String] = None, groupId: Option[String] = None, roleId: Option[String] = None,
     domainId: Option[String] = None, projectId: Option[String] = None, system: Option[Boolean] = None,

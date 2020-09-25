@@ -26,8 +26,8 @@ object Domain {
   case class Create(
     name: String,
     description: Option[String] = None,
-    explicitDomainId: Option[String] = None,
     enabled: Boolean = true,
+    explicitDomainId: Option[String] = None,
   )
 
   object Update {

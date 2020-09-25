@@ -9,8 +9,8 @@ import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{Group, Session, User}
 
-final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session, authToken: Header)
-  extends CrudService[F, Group, Group.Create, Group.Update](baseUri, "group", authToken)
+final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session)
+  extends CrudService[F, Group, Group.Create, Group.Update](baseUri, "group", session.authToken)
   with UniqueWithinDomain[F, Group] {
   import dsl._
 
@@ -28,12 +28,11 @@ final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session, authToken
   override def create(create: Group.Create, extraHeaders: Header*): F[Group] = createHandleConflict(create, extraHeaders:_*) {
     val domainId = create.domainId.getOrElse(session.scopedDomainId())
     // We got a Conflict so we must be able to find the existing Group
-    apply(create.name, domainId).flatMap { existingGroup =>
-      // Description is the only field that can be different
-      if (existingGroup.description != create.description) {
-        update(existingGroup.id, Group.Update(description = create.description), extraHeaders:_*)
+    apply(create.name, domainId).flatMap { existing =>
+      if (existing.description != create.description) {
+        update(existing.id, Group.Update(description = create.description), extraHeaders:_*)
       } else {
-        Sync[F].pure(existingGroup)
+        Sync[F].pure(existing)
       }
     }
   }
