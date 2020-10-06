@@ -19,9 +19,10 @@ class RoleSpec extends CrudSpec[Role, Role.Create, Role.Update]("role") {
     model.domainId shouldBe create.domainId
   }
 
-  override def updateStub: Role.Update = Role.Update(Some(randomName()), Some(randomName()))
+  override def updateStub: Role.Update = Role.Update(
+    description = Some(randomName())
+  )
   override def compareUpdate(update: Role.Update, model: Role): Assertion = {
-    model.name shouldBe update.name.value
     model.description shouldBe update.description
     model.domainId.isEmpty shouldBe true
   }
@@ -35,7 +36,7 @@ class RoleSpec extends CrudSpec[Role, Role.Create, Role.Update]("role") {
 
   s"The $name service" should {
     s"list ${name}s in a domain" in roleWithDomainResource.use[IO, Assertion] { role =>
-      keystone.roles.listByDomain(role.domainId.get).compile.toList.idempotently(_ should contain(role))
+      keystone.roles.listByDomain(role.domainId.get).idempotently(_ should contain(role))
     }
 
     s"get ${name}s in a domain" in roleWithDomainResource.use[IO, Assertion] { role =>

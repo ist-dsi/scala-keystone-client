@@ -5,8 +5,6 @@ import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
 object Region {
-  implicit val decoder: Decoder[Region] = deriveDecoder(renaming.snakeCase)
-
   object Create {
     implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
   }
@@ -17,8 +15,8 @@ object Region {
    * @param parentRegionId To make this region a child of another region, set this parameter to the ID of the parent region.
    */
   case class Create(
-    id: Option[String] = None,
-    description: Option[String] = None,
+    id: String,
+    description: String = "",
     parentRegionId: Option[String] = None,
   )
 
@@ -33,11 +31,19 @@ object Region {
   case class Update(
     description: Option[String] = None,
     parentRegionId: Option[String] = None,
-  )
+  ) {
+    lazy val needsUpdate: Boolean = {
+      // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
+      //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
+      List(description, parentRegionId).exists(_.isDefined)
+    }
+  }
+  
+  implicit val decoder: Decoder[Region] = deriveDecoder(renaming.snakeCase)
 }
 final case class Region(
   id: String,
-  description: Option[String],
+  description: String,
   parentRegionId: Option[String],
   links: List[Link] = List.empty,
 ) extends Identifiable

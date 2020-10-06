@@ -2,30 +2,29 @@ package pt.tecnico.dsi.openstack.keystone.services
 
 import cats.effect.Sync
 import cats.syntax.flatMap._
-import fs2.Stream
 import org.http4s.Method.DELETE
-import org.http4s.Status.{Forbidden, NotFound, Successful}
+import org.http4s.Status.{Conflict, Forbidden, NotFound, Successful}
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
-import pt.tecnico.dsi.openstack.keystone.models.{Domain, Scope, Session}
+import pt.tecnico.dsi.openstack.keystone.models.{Domain, KeystoneError, Scope, Session}
 
 final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Domain, Domain.Create, Domain.Update](baseUri, "domain", session.authToken)
   with EnableDisableEndpoints[F, Domain] {
   import dsl._
-
+  
   /**
     * @param name filters the response by a domain name.
     * @param enabled filters the response by either enabled (true) or disabled (false) domains.
     * @return a stream of domains filtered by the various parameters.
     */
-  def list(name: Option[String] = None, enabled: Option[Boolean]): Stream[F, Domain] =
+  def list(name: Option[String] = None, enabled: Option[Boolean]): F[List[Domain]] =
     list(Query.fromVector(Vector(
       "name" -> name,
       "enabled" -> enabled.map(_.toString),
     )))
-
+  
   /**
     * Get detailed information about the domain specified by name, assuming it exists.
     *
@@ -46,22 +45,28 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
    * @return a Some of the domain matching the name if it exists. A None otherwise.
    */
   def getByName(name: String): F[Option[Domain]] =
-    list(Query.fromPairs("name" -> name)).compile.last
-
-  override def create(create: Domain.Create, extraHeaders: Header*): F[Domain] = createHandleConflict(create, extraHeaders:_*) {
-    // We got a conflict so a domain with this name must already exist
-    applyByName(create.name).flatMap { existing =>
-      if (existing.description != create.description || existing.enabled != create.enabled) {
-        update(existing.id, Domain.Update(
-          description = if (existing.description != create.description) create.description else None,
-          enabled = Option.when(existing.enabled != create.enabled)(create.enabled),
-        ))
-      } else {
-        Sync[F].pure(existing)
-      }
+    stream(Query.fromPairs("name" -> name)).compile.last
+  
+  override def update(id: String, update: Domain.Update, extraHeaders: Header*): F[Domain] =
+    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+  
+  override def defaultResolveConflict(existing: Domain, create: Domain.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Domain] = {
+    val updated = Domain.Update(
+      description = Option(create.description).filter(_ != existing.description),
+      enabled = Option(create.enabled).filter(_ != existing.enabled),
+    )
+    if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
+    else Sync[F].pure(existing)
+  }
+  override def createOrUpdate(create: Domain.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
+    (resolveConflict: (Domain, Domain.Create) => F[Domain] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Domain] = {
+    // How do you think Openstack implements Domains? As a project with isDomain = true? Thumbs up for good implementations </sarcasm>
+    val conflicting = """.*?it is not permitted to have two projects acting as domains with the same name: ([^.]+)\.""".r
+    createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
+      case KeystoneError(conflicting(name), Conflict.code, _) => applyByName(name).flatMap(resolveConflict(_, create))
     }
   }
-
+  
   /**
     * Deletes the domain. This also deletes all entities owned by the domain, such as users, groups, and projects, and any credentials
     * and granted roles that relate to those entities.

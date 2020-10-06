@@ -3,12 +3,11 @@ package pt.tecnico.dsi.openstack.keystone.services
 import scala.annotation.nowarn
 import cats.effect.Sync
 import cats.syntax.flatMap._
-import fs2.Stream
 import org.http4s.Status.Conflict
-import org.http4s.client.{Client, UnexpectedStatus}
+import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
-import pt.tecnico.dsi.openstack.keystone.models.{Assignment, Domain, Group, GroupAssignment, Project, Role, Scope, Session, System, User, UserAssignment}
+import pt.tecnico.dsi.openstack.keystone.models._
 
 final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Role, Role.Create, Role.Update](baseUri, "role", session.authToken)
@@ -19,34 +18,41 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
     * @param domainId filters the response by a domain ID.
     * @return a stream of roles filtered by the various parameters.
     */
-  def list(name: Option[String] = None, domainId: Option[String] = None): Stream[F, Role] =
+  def list(name: Option[String] = None, domainId: Option[String] = None): F[List[Role]] =
     list(Query.fromVector(Vector(
       "name" -> name,
       "domain_id" -> domainId,
     )))
   
-  override def create(create: Role.Create, extraHeaders: Header*): F[Role] = createHandleConflict(create, extraHeaders:_*) {
-    def updateIt(existing: Role): F[Role] =
-      if (existing.description != create.description) {
-        update(existing.id, Role.Update(description = create.description), extraHeaders:_*)
-      } else {
-        Sync[F].pure(existing)
-      }
-
-    create.domainId match {
-      case Some(domainId) =>
-        // We got a Conflict and we have a domainId so we can find the existing Role since it must already exist
-        apply(create.name, domainId).flatMap(updateIt)
-      case None =>
-        // Currently Keystone does not accept the limit query param but it might in the future.
-        // We only need 2 results to disambiguate whether the role name is unique or not.
-        list(Query.fromPairs("name" -> create.name, "limit" -> "2"), extraHeaders:_*).compile.toList.flatMap { roles =>
-          if (roles.lengthIs == 1) {
-            updateIt(roles.head)
-          } else {
-            // There is more than one role with name `create.name`. We do not have enough information to disambiguate between them.
-            Sync[F].raiseError(UnexpectedStatus(Conflict))
-          }
+  override def update(id: String, update: Role.Update, extraHeaders: Header*): F[Role] =
+    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+  
+  override def defaultResolveConflict(existing: Role, create: Role.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Role] = {
+    val updated = Role.Update(
+      description = if (create.description != existing.description) create.description else None,
+    )
+    if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
+    else Sync[F].pure(existing)
+  }
+  override def createOrUpdate(create: Role.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
+    (resolveConflict: (Role, Role.Create) => F[Role] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Role] = {
+    val conflicting = """.*?Duplicate entry found with name ([^ ]+)(?: at domain ID ([^.]+))?\.""".r
+    createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
+      case error @ KeystoneError(conflicting(name, domainIdOpt), Conflict.code, _) =>
+        Option(domainIdOpt) match {
+          case Some(domainId) =>
+            // We got a Conflict and we have a domainId so we can find the existing Role since it must already exist
+            apply(name, domainId).flatMap(resolveConflict(_, create))
+          case None =>
+            list(Query.fromPairs("name" -> create.name), extraHeaders:_*).flatMap { list =>
+              // We know the domainId must be empty so we can use that to further refine the search
+              list.filter(_.domainId.isEmpty) match {
+                case List(existing) => resolveConflict(existing, create)
+                case _ =>
+                  // There is more than one role with name `create.name`. We do not have enough information to disambiguate between them.
+                  Sync[F].raiseError(error)
+              }
+            }
         }
     }
   }
@@ -68,7 +74,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
   
   def listAssignments(userId: Option[String] = None, groupId: Option[String] = None, roleId: Option[String] = None,
     domainId: Option[String] = None, projectId: Option[String] = None, system: Option[Boolean] = None,
-    effective: Boolean = false, includeNames: Boolean = false, includeSubtree: Boolean = false): Stream[F, Assignment] = {
+    effective: Boolean = false, includeNames: Boolean = false, includeSubtree: Boolean = false): F[List[Assignment]] = {
     val query: Vector[(String, Option[String])] = Vector(
       "user.id" -> userId,
       "group.id" -> groupId,
@@ -84,12 +90,12 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
     list[Assignment]("role_assignments", baseUri / "role_assignments", Query.fromVector(query))
   }
   
-  def listAssignmentsForUser(id: String): Stream[F, UserAssignment] =
-    listAssignments(userId = Some(id)).asInstanceOf[Stream[F, UserAssignment]]
-  def listAssignmentsForGroup(id: String): Stream[F, GroupAssignment] =
-    listAssignments(groupId = Some(id)).asInstanceOf[Stream[F, GroupAssignment]]
-  def listAssignmentsForRole(id: String): Stream[F, Assignment] = listAssignments(roleId = Some(id))
-  def listAssignments(user: User): Stream[F, UserAssignment] = listAssignmentsForUser(user.id)
-  def listAssignments(group: Group): Stream[F, GroupAssignment] = listAssignmentsForGroup(group.id)
-  def listAssignments(role: Role): Stream[F, Assignment] = listAssignmentsForRole(role.id)
+  def listAssignmentsForUser(id: String): F[List[UserAssignment]] =
+    listAssignments(userId = Some(id)).asInstanceOf[F[List[UserAssignment]]]
+  def listAssignmentsForGroup(id: String): F[List[GroupAssignment]] =
+    listAssignments(groupId = Some(id)).asInstanceOf[F[List[GroupAssignment]]]
+  def listAssignmentsForRole(id: String): F[List[Assignment]] = listAssignments(roleId = Some(id))
+  def listAssignments(user: User): F[List[UserAssignment]] = listAssignmentsForUser(user.id)
+  def listAssignments(group: Group): F[List[GroupAssignment]] = listAssignmentsForGroup(group.id)
+  def listAssignments(role: Role): F[List[Assignment]] = listAssignmentsForRole(role.id)
 }

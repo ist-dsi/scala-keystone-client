@@ -1,7 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
 import cats.effect.Sync
-import fs2.Stream
 import org.http4s.Method.{DELETE, GET, HEAD}
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
@@ -27,12 +26,12 @@ final class Authentication[F[_]: Sync: Client](baseUri: Uri, session: Session) e
   def revoke(token: String): F[Unit] = client.expect(DELETE(uri / "tokens", authToken, subjectToken(token)))
 
   /** Get service catalog. */
-  def serviceCatalog: F[List[CatalogEntry]] = super.list[CatalogEntry]("catalog", uri / "catalog", Query.empty).compile.toList
+  def serviceCatalog: F[List[CatalogEntry]] = super.list[CatalogEntry]("catalog", uri / "catalog", Query.empty)
 
   /** Get available project scopes. */
-  def projectScopes: Stream[F, Project] = super.list[Project]("projects", uri / "projects", Query.empty)
+  def projectScopes: F[List[Project]] = super.list[Project]("projects", uri / "projects", Query.empty)
   /** Get available domain scopes */
-  def domainScopes: Stream[F, Domain] = super.list[Domain]("domains", uri / "domains", Query.empty)
+  def domainScopes: F[List[Domain]] = super.list[Domain]("domains", uri / "domains", Query.empty)
   /** Get available system scopes */
   def systemScopes: F[System] = client.expect(GET(uri / "system"))
 }

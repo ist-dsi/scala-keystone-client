@@ -5,8 +5,6 @@ import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
 object Endpoint {
-  implicit val decoder: Decoder[Endpoint] = deriveDecoder(renaming.snakeCase)
-
   object Create {
     implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
   }
@@ -51,7 +49,15 @@ object Endpoint {
     serviceId: Option[String] = None,
     regionId: Option[String] = None,
     enabled: Option[Boolean] = None,
-  )
+  ) {
+    lazy val needsUpdate: Boolean = {
+      // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
+      //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
+      List(interface, url, serviceId, regionId, enabled).exists(_.isDefined)
+    }
+  }
+  
+  implicit val decoder: Decoder[Endpoint] = deriveDecoder(renaming.snakeCase)
 }
 final case class Endpoint(
   id: String,

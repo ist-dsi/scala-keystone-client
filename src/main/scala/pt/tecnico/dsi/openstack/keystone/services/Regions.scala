@@ -2,12 +2,11 @@ package pt.tecnico.dsi.openstack.keystone.services
 
 import cats.effect.Sync
 import cats.syntax.flatMap._
-import fs2.Stream
-import org.http4s.Status.BadRequest
-import org.http4s.client.{Client, UnexpectedStatus}
+import org.http4s.Status.Conflict
+import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
 import pt.tecnico.dsi.openstack.common.services.CrudService
-import pt.tecnico.dsi.openstack.keystone.models.{Region, Session}
+import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Region, Session}
 
 final class Regions[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Region, Region.Create, Region.Update](baseUri, "region", session.authToken) {
@@ -15,27 +14,27 @@ final class Regions[F[_]: Sync: Client](baseUri: Uri, session: Session)
     * @param parentRegionId filters the response by a parent region, by ID.
     * @return a stream of regions filtered by the various parameters.
     */
-  def list(parentRegionId: Option[String] = None): Stream[F, Region] =
+  def list(parentRegionId: Option[String] = None): F[List[Region]] =
     list(Query.fromVector(Vector(
       "parent_region_id" -> parentRegionId,
     )))
-
-  override def create(create: Region.Create, extraHeaders: Header*): F[Region] = createHandleConflict(create, extraHeaders:_*) {
-    create.id match {
-      case Some(id) => apply(id).flatMap { existing =>
-        if (existing.description != create.description || existing.parentRegionId != create.parentRegionId) {
-          val updated = Region.Update(
-            if (existing.description != create.description) create.description else None,
-            if (existing.parentRegionId != create.parentRegionId) create.parentRegionId else None,
-          )
-          update(existing.id, updated, extraHeaders:_*)
-        } else {
-          Sync[F].pure(existing)
-        }
-      }
-      case None =>
-        // This will never happen, because it would mean openstack allows repeated ids.
-        Sync[F].raiseError(UnexpectedStatus(BadRequest))
+  
+  override def update(id: String, update: Region.Update, extraHeaders: Header*): F[Region] =
+    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+  
+  override def defaultResolveConflict(existing: Region, create: Region.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Region] = {
+    val updated = Region.Update(
+      Option(create.description).filter(_ != existing.description),
+      if (create.parentRegionId != existing.parentRegionId) create.parentRegionId else None,
+    )
+    if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
+    else Sync[F].pure(existing)
+  }
+  override def createOrUpdate(create: Region.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
+    (resolveConflict: (Region, Region.Create) => F[Region] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Region] = {
+    val conflicting = """.*?Duplicate ID, ([^.]+)\..*?""".r
+    createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
+      case KeystoneError(conflicting(id), Conflict.code, _) => apply(id).flatMap(resolveConflict(_, create))
     }
   }
 }

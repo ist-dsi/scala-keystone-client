@@ -1,12 +1,10 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import io.circe.{Codec, Encoder}
-import io.circe.derivation.{deriveCodec, deriveEncoder, renaming}
+import io.circe.{Decoder, Encoder}
+import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
 object Service {
-  implicit val codec: Codec.AsObject[Service] = deriveCodec(renaming.snakeCase)
-
   object Create {
     implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
   }
@@ -41,7 +39,15 @@ object Service {
     `type`: Option[String] = None,
     description: Option[String] = None,
     enabled: Option[Boolean] = None,
-  )
+  ) {
+    lazy val needsUpdate: Boolean = {
+      // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
+      //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
+      List(name, `type`, description, enabled).exists(_.isDefined)
+    }
+  }
+  
+  implicit val decoder: Decoder[Service] = deriveDecoder(renaming.snakeCase)
 }
 final case class Service(
   id: String,

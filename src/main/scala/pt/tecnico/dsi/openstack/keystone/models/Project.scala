@@ -7,8 +7,6 @@ import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
 
 object Project {
-  implicit val decoder: Decoder[Project] = deriveDecoder(renaming.snakeCase)
-
   object Create {
     implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
   }
@@ -38,13 +36,14 @@ object Project {
    */
   case class Create(
     name: String,
-    description: Option[String] = None,
+    description: String = "",
     domainId: Option[String] = None,
     isDomain: Boolean = false,
     enabled: Boolean = true,
     parentId: Option[String] = None,
     tags: List[String] = List.empty,
   ) {
+    // Because a Project with isDomain = true **is** a Domain. Domains are implemented as Projects with isDomain = true. Great choice right there </sarcasm>
     if (isDomain && domainId.isDefined) throw new IllegalArgumentException("For projects acting as a domain, the `domainId` must not be specified.")
     if (isDomain && parentId.isDefined) throw new IllegalArgumentException("For projects acting as a domain, the `parentId` must not be specified.")
   }
@@ -65,7 +64,15 @@ object Project {
     description: Option[String] = None,
     enabled: Option[Boolean] = None,
     tags: Option[List[String]] = None,
-  )
+  ) {
+    lazy val needsUpdate: Boolean = {
+      // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
+      //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
+      List(name, description, enabled, tags).exists(_.isDefined)
+    }
+  }
+  
+  implicit val decoder: Decoder[Project] = deriveDecoder(renaming.snakeCase)
 }
 /**
  * @define context project
@@ -73,7 +80,7 @@ object Project {
 final case class Project(
   id: String,
   name: String,
-  description: Option[String] = None,
+  description: String,
   domainId: String,
   isDomain: Boolean,
   enabled: Boolean,
@@ -81,5 +88,6 @@ final case class Project(
   tags: List[String],
   links: List[Link] = List.empty,
 ) extends Identifiable with RoleAssigner {
+  def domain[F[_]](implicit client: KeystoneClient[F]): F[Domain] = client.domains(domainId)
   override def roleAssignment[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = client.roles.on(this)
 }

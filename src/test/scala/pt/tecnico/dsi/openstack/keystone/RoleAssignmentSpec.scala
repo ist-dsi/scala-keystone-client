@@ -28,9 +28,10 @@ trait RoleAssignmentSpec[T <: Identifiable] { this: CrudSpec[T, _, _] =>
   
   s"The $name service should handle role assignment" should {
     "list assigned roles" in withStubs.use[IO, Assertion] { case (roleService, user, group, role) =>
-      (roleService.listAssignmentsFor(user) ++ roleService.listAssignmentsFor(group)).compile.toList.idempotently { roles =>
-        roles.forall(_.id == role.id) shouldBe true
-      }
+      for {
+        _ <- roleService.listAssignmentsFor(user).idempotently(_.forall(_.id == role.id) shouldBe true)
+        result <- roleService.listAssignmentsFor(group).idempotently(_.forall(_.id == role.id) shouldBe true)
+      } yield result
     }
     "assign roles" in withStubs.use[IO, Assertion] { case (roleService, user, group, role) =>
       for {

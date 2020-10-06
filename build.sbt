@@ -18,7 +18,7 @@ scalacOptions ++= Seq(
   "-Xcheckinit",                   // Wrap field accessors to throw an exception on uninitialized access.
   "-Xsource:3",                    // Treat compiler input as Scala source for the specified version.
   "-Xmigration:3",                 // Warn about constructs whose behavior may have changed since version.
-  "-Werror",                       // Fail the compilation if there are any warnings.
+//  "-Werror",                       // Fail the compilation if there are any warnings.
   "-Xlint:_",                      // Enables every warning. scalac -Xlint:help for a list and explanation
   "-deprecation",                  // Emit warning and location for usages of deprecated APIs.
   "-unchecked",                    // Enable additional warnings where generated code depends on assumptions.
@@ -41,12 +41,11 @@ scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
 // ==== Dependencies ====================================================================================================
 // ======================================================================================================================
 libraryDependencies ++= Seq(
-  "pt.tecnico.dsi"  %% "scala-openstack-common-clients" % "0.3.0-SNAPSHOT",
+  "pt.tecnico.dsi"  %% "scala-openstack-common-clients" % "0.4.0-SNAPSHOT",
   "io.circe"        %% "circe-parser"      % "0.13.0", // Used in Credentials
   "com.beachape"    %% "enumeratum-circe"  % "1.6.1",
   "ch.qos.logback"  %  "logback-classic"   % "1.2.3" % Test,
-  // Scalatest 3.2.1 has a bug and its not showing all the tests being run
-  "org.scalatest"   %% "scalatest"         % "3.3.0-SNAP2" % Test,
+  "org.scalatest"   %% "scalatest"         % "3.2.2" % Test,
 )
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
@@ -55,9 +54,14 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 // ======================================================================================================================
 // ==== Testing =========================================================================================================
 // ======================================================================================================================
+// http://www.scalatest.org/user_guide/using_the_runner
+//   -o[configs...] - causes test results to be written to the standard output.
+//      D - show all durations
+//      F - show full stack traces
+Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
+
 // By default, logging is buffered for each test source file until all tests for that file complete. This disables it.
 Test / logBuffered := false
-// https://www.scala-sbt.org/1.x/docs/Testing.html#Forking+tests
 // By default, tests executed in a forked JVM are executed sequentially.
 Test / fork := true
 // So we make them run in parallel.
@@ -66,14 +70,9 @@ Test / testForkedParallel := true
 Test / testGrouping := {
   import sbt.Tests.{Group, SubProcess}
   (Test / definedTests).value.grouped(4).zipWithIndex.map { case (tests, index) =>
-    Group(index.toString, tests, SubProcess(ForkOptions()))
+    Group(index.toString, tests, SubProcess(ForkOptions().withRunJVMOptions((Test / javaOptions).value.toVector)))
   }.toSeq
 }
-
-// http://www.scalatest.org/user_guide/using_the_runner
-//   -o[configs...] - causes test results to be written to the standard output. The D configs shows all durations.
-// -F shows the complete stack trace in case of exception thrown.
-testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 
 // ======================================================================================================================
 // ==== Scaladoc ========================================================================================================
@@ -104,9 +103,9 @@ excludeFilter in ghpagesCleanSite := AllPassFilter // We want to keep all the pr
 val latestFileName = "latest"
 val createLatestSymlink = taskKey[Unit](s"Creates a symlink named $latestFileName which points to the latest version.")
 createLatestSymlink := {
-  ghpagesSynchLocal.value // Ensure the ghpagesRepository already exists
   import java.nio.file.Files
-  val path = (ghpagesRepository.value / "api" / latestFileName).toPath
+  // We use ghpagesSynchLocal instead of ghpagesRepository to ensure the files in the local filesystem already exist
+  val path = (ghpagesSynchLocal.value / "api" / latestFileName).toPath
   if (!Files.isSymbolicLink(path)) Files.createSymbolicLink(path, new File(latestReleasedVersion.value).toPath)
 }
 ghpagesPushSite := ghpagesPushSite.dependsOn(createLatestSymlink).value

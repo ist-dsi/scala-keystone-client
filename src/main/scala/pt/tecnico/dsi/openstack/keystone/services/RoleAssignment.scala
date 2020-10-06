@@ -3,7 +3,6 @@ package pt.tecnico.dsi.openstack.keystone.services
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import fs2.Stream
 import org.http4s.Method.{HEAD, PUT}
 import org.http4s.client.Client
 import org.http4s.{Query, Uri}
@@ -31,7 +30,7 @@ class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope:
    *   keystone.roles on domain listAssignments()
    * }}}
    */
-  def listAssignments(): Stream[F, Assignment] =
+  def listAssignments(): F[List[Assignment]] =
     self.list[Assignment]("role_assignments", baseUri / "role_assignments", roleAssignmentsApiQuery)
   
   def rolesApiUri(subjectType: String, subjectId: String): Uri = {
@@ -46,7 +45,7 @@ class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope:
     baseWithScope / subjectType / subjectId / "roles"
   }
   
-  protected def listAssignmentsFor(subjectType: String, subjectId: String): Stream[F, Role] =
+  protected def listAssignmentsFor(subjectType: String, subjectId: String): F[List[Role]] =
     self.list[Role]("roles", rolesApiUri(subjectType, subjectId), Query.empty)
   
   /**
@@ -57,7 +56,7 @@ class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope:
     *   keystone.roles on domain listAssignmentsFor "user-id"
     * }}}
     */
-  def listAssignmentsForUser(id: String): Stream[F, Role] = listAssignmentsFor("users", id)
+  def listAssignmentsForUser(id: String): F[List[Role]] = listAssignmentsFor("users", id)
   /**
     * Lists the role assignments for the group with `id` on the given context.
     * @example
@@ -66,7 +65,7 @@ class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope:
     *   keystone.roles on domain listAssignmentsFor "group-id"
     * }}}
     */
-  def listAssignmentsForGroup(id: String): Stream[F, Role] = listAssignmentsFor("groups", id)
+  def listAssignmentsForGroup(id: String): F[List[Role]] = listAssignmentsFor("groups", id)
   
   /**
     * Lists the role assignments for `user` on the given context.
@@ -77,7 +76,7 @@ class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope:
     *   keystone.roles on domain listAssignmentsFor user
     * }}}
     */
-  def listAssignmentsFor(user: User): Stream[F, Role] = listAssignmentsForUser(user.id)
+  def listAssignmentsFor(user: User): F[List[Role]] = listAssignmentsForUser(user.id)
   /**
     * Lists the role assignments for `group` on the given context.
     * @example
@@ -87,7 +86,7 @@ class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope:
     *   keystone.roles on domain listAssignmentsFor group
     * }}}
     */
-  def listAssignmentsFor(group: Group): Stream[F, Role] = listAssignmentsForGroup(group.id)
+  def listAssignmentsFor(group: Group): F[List[Role]] = listAssignmentsForGroup(group.id)
   
   final class Assign(roleId: String) {
     private def to(subjectType: String, subjectId: String): F[Unit] =

@@ -12,6 +12,7 @@ import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s._
 import org.typelevel.ci.CIString
+import pt.tecnico.dsi.openstack.common.models.UnexpectedStatus
 import pt.tecnico.dsi.openstack.keystone.UnauthenticatedKeystoneClient.Credential
 import pt.tecnico.dsi.openstack.keystone.models.{Scope, Session}
 
@@ -109,7 +110,9 @@ class UnauthenticatedKeystoneClient[F[_]](baseUri: Uri)(implicit client: Client[
             implicit val sessionDecoder: EntityDecoder[F, Session] = jsonDecoder(Session.decoder(Header("X-Auth-Token", token.value)))
             response.as[Session]
         }
-      case failedResponse => F.raiseError(new Throwable(s"unexpected HTTP status: ${failedResponse.status}"))
+      case failedResponse =>
+        import cats.instances.string._
+        failedResponse.bodyText.compile.foldMonoid.flatMap(bodyString => F.raiseError(UnexpectedStatus(failedResponse.status, bodyString)))
     }).map(new KeystoneClient(baseUri, _))
   }
 }

@@ -2,32 +2,13 @@ package pt.tecnico.dsi.openstack.keystone.models
 
 import java.time.OffsetDateTime
 import cats.effect.Sync
-import fs2.Stream
 import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
 import io.circe.syntax._
-import io.circe.{Codec, Decoder, Encoder}
+import io.circe.{Decoder, Encoder}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
 object User {
-  /*The decoder must handle the user returned from GET /v3/users/${id} and the user return from the /v3/auth/tokens
-   The user from the tokens does not have a field named domain_id. Instead it has:
-   "domain": {
-     "id": "default",
-     "name": "Default"
-   }
-   We simply ignore the domain name and read domain.id directly to domainId. The domain can be easily obtained from
-   the User domain class*/
-  implicit val decoder: Decoder[User] = deriveDecoder(renaming.snakeCase).prepare { cursor =>
-    val domainIdCursor = cursor.downField("domain").downField("id")
-    domainIdCursor.as[String] match {
-      case Right(domainId) => domainIdCursor.up.delete.withFocus(_.mapObject(_.add("domain_id", domainId.asJson)))
-      case Left(_) => cursor
-    }
-  }
-  implicit val encoder: Encoder.AsObject[User] = deriveEncoder(renaming.snakeCase).mapJsonObject(_.remove("password_expires_at"))
-  implicit val codec: Codec[User] = Codec.from(decoder, encoder)
-
   object Create {
     implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
   }
@@ -71,7 +52,29 @@ object User {
     password: Option[String] = None,
     defaultProjectId: Option[String] = None,
     enabled: Option[Boolean] = None,
-  )
+  ) {
+    lazy val needsUpdate: Boolean = {
+      // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
+      //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
+      List(name, password, defaultProjectId, enabled).exists(_.isDefined)
+    }
+  }
+  
+  /*The decoder must handle the user returned from GET /v3/users/${id} and the user return from the /v3/auth/tokens
+   The user from the tokens does not have a field named domain_id. Instead it has:
+   "domain": {
+     "id": "default",
+     "name": "Default"
+   }
+   We simply ignore the domain name and read domain.id directly to domainId. The domain can be easily obtained from
+   the User domain class*/
+  implicit val decoder: Decoder[User] = deriveDecoder(renaming.snakeCase).prepare { cursor =>
+    val domainIdCursor = cursor.downField("domain").downField("id")
+    domainIdCursor.as[String] match {
+      case Right(domainId) => domainIdCursor.up.delete.withFocus(_.mapObject(_.add("domain_id", domainId.asJson)))
+      case Left(_) => cursor
+    }
+  }
 }
 final case class User(
   id: String,
@@ -82,12 +85,12 @@ final case class User(
   enabled: Boolean = true,
   links: List[Link] = List.empty,
 ) extends Identifiable { self =>
-  def domain[F[_]](implicit client: KeystoneClient[F]): F[Domain] = client.domains.apply(domainId) // The domain must exist
+  def domain[F[_]](implicit client: KeystoneClient[F]): F[Domain] = client.domains(domainId)
 
   /** The groups to which the user belongs */
-  def groups[F[_]: Sync](implicit client: KeystoneClient[F]): Stream[F, Group] = client.users.listGroups(self.id)
+  def groups[F[_]: Sync](implicit client: KeystoneClient[F]): F[List[Group]] = client.users.listGroups(self.id)
   /** The projects to which the user belongs */
-  def projects[F[_]: Sync](implicit client: KeystoneClient[F]): Stream[F, Project] = client.users.listProjects(self.id)
+  def projects[F[_]: Sync](implicit client: KeystoneClient[F]): F[List[Project]] = client.users.listProjects(self.id)
   def changePassword[F[_]: Sync](originalPassword: String, password: String)(implicit client: KeystoneClient[F]): F[Unit] =
     client.users.changePassword(self.id, originalPassword, password)
 

@@ -1,7 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
 import cats.syntax.flatMap._
-import fs2.Stream
 import org.http4s.Query
 import pt.tecnico.dsi.openstack.common.models.Identifiable
 import pt.tecnico.dsi.openstack.common.services.CrudService
@@ -12,12 +11,12 @@ trait UniqueWithinDomain[F[_], T <: Identifiable] { this: CrudService[F, T, _, _
     * @note Since the `T` name must be unique within a domain, all the returned `T`s will have different domains.
     * @param name the name to search for.
     */
-  def listByName(name: String): Stream[F, T] = list(Query.fromPairs("name" -> name))
+  def listByName(name: String): F[List[T]] = list(Query.fromPairs("name" -> name))
 
   /** Lists `T`s in the given domain.
     * @param domainId the domain id of the domain.
     */
-  def listByDomain(domainId: String): Stream[F, T] = list(Query.fromPairs("domain_id" -> domainId))
+  def listByDomain(domainId: String): F[List[T]] = list(Query.fromPairs("domain_id" -> domainId))
 
   /**
     * Get detailed information about the `T` specified by name and domainId, assuming it exists.
@@ -44,5 +43,5 @@ trait UniqueWithinDomain[F[_], T <: Identifiable] { this: CrudService[F, T, _, _
    * @return a Some `T` matching the name in a specific domain if it exists. A None otherwise.
    */
   def get(name: String, domainId: String): F[Option[T]] =
-    list(Query.fromPairs("name" -> name, "domain_id" -> domainId)).compile.last
+    stream(Query.fromPairs("name" -> name, "domain_id" -> domainId)).compile.last
 }

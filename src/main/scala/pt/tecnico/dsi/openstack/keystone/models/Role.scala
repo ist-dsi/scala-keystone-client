@@ -5,8 +5,6 @@ import io.circe.{Decoder, Encoder}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
 object Role {
-  implicit val decoder: Decoder[Role] = deriveDecoder(renaming.snakeCase)
-
   object Create {
     implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
   }
@@ -35,7 +33,15 @@ object Role {
   case class Update(
     name: Option[String] = None,
     description: Option[String] = None,
-  )
+  ) {
+    lazy val needsUpdate: Boolean = {
+      // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
+      //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
+      List(name, description).exists(_.isDefined)
+    }
+  }
+  
+  implicit val decoder: Decoder[Role] = deriveDecoder(renaming.snakeCase)
 }
 final case class Role(
   id: String,

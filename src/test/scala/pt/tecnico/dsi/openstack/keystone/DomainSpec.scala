@@ -12,7 +12,7 @@ final class DomainSpec extends CrudSpec[Domain, Domain.Create, Domain.Update]("d
 
   override def createStub(name: String): Domain.Create = {
     // We set enabled = false so the delete test can pass
-    Domain.Create(name, Some("a description"), enabled = false)
+    Domain.Create(name, "a description", enabled = false)
   }
   override def compareCreate(create: Domain.Create, model: Domain): Assertion = {
     model.name shouldBe create.name
@@ -20,10 +20,10 @@ final class DomainSpec extends CrudSpec[Domain, Domain.Create, Domain.Update]("d
     model.enabled shouldBe create.enabled
   }
 
-  override def updateStub: Domain.Update = Domain.Update(name = Some(randomName()), Some("a better and improved description"))
+  override def updateStub: Domain.Update = Domain.Update(name = Some(randomName()), Some("a better description"))
   override def compareUpdate(update: Domain.Update, model: Domain): Assertion = {
     model.name shouldBe update.name.value
-    model.description shouldBe update.description
+    model.description shouldBe update.description.value
     model.enabled shouldBe false // We didn't change it from the create
   }
 

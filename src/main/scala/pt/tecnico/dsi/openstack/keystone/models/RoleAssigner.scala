@@ -1,6 +1,5 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import fs2.Stream
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
 
@@ -18,7 +17,7 @@ trait RoleAssigner {
    *   $scope listAssignmentsFor "user-id"
    * }}}
    */
-  def listAssignmentsForUser[F[_]: KeystoneClient](id: String): Stream[F, Role] = roleAssignment.listAssignmentsForUser(id)
+  def listAssignmentsForUser[F[_]: KeystoneClient](id: String): F[List[Role]] = roleAssignment.listAssignmentsForUser(id)
   /**
    * Lists the role assignments for the group with `id` on $scope.
    * @example
@@ -26,7 +25,7 @@ trait RoleAssigner {
    *   $scope listAssignmentsFor "group-id"
    * }}}
    */
-  def listAssignmentsForGroup[F[_]: KeystoneClient](id: String): Stream[F, Role] = roleAssignment.listAssignmentsForGroup(id)
+  def listAssignmentsForGroup[F[_]: KeystoneClient](id: String): F[List[Role]] = roleAssignment.listAssignmentsForGroup(id)
   
   /**
    * Lists the role assignments for `user` on $scope.
@@ -36,7 +35,7 @@ trait RoleAssigner {
    *   $scope listAssignmentsFor user
    * }}}
    */
-  def listAssignmentsFor[F[_]: KeystoneClient](user: User): Stream[F, Role] = listAssignmentsForUser(user.id)
+  def listAssignmentsFor[F[_]: KeystoneClient](user: User): F[List[Role]] = listAssignmentsForUser(user.id)
   /**
    * Lists the role assignments for `group` on $scope.
    * @example
@@ -45,7 +44,7 @@ trait RoleAssigner {
    *   $scope listAssignmentsFor group
    * }}}
    */
-  def listAssignmentsFor[F[_]: KeystoneClient](group: Group): Stream[F, Role] = listAssignmentsForGroup(group.id)
+  def listAssignmentsFor[F[_]: KeystoneClient](group: Group): F[List[Role]] = listAssignmentsForGroup(group.id)
 
   /**
    * Allows assigning the role with `roleId` to user/group on $scope.
