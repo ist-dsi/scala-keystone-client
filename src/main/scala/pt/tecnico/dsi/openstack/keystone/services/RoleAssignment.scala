@@ -31,7 +31,7 @@ class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope:
    * }}}
    */
   def listAssignments(): F[List[Assignment]] =
-    self.list[Assignment]("role_assignments", baseUri / "role_assignments", roleAssignmentsApiQuery)
+    self.list[Assignment]("role_assignments", (baseUri / "role_assignments").copy(query = roleAssignmentsApiQuery))
   
   def rolesApiUri(subjectType: String, subjectId: String): Uri = {
     val baseWithScope = scope match {
@@ -46,7 +46,7 @@ class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope:
   }
   
   protected def listAssignmentsFor(subjectType: String, subjectId: String): F[List[Role]] =
-    self.list[Role]("roles", rolesApiUri(subjectType, subjectId), Query.empty)
+    self.list[Role]("roles", rolesApiUri(subjectType, subjectId))
   
   /**
     * Lists the role assignments for the user with `id` on the given context.

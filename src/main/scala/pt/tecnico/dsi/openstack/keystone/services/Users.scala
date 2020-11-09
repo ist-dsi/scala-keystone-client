@@ -46,7 +46,7 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session)
     * @param id the user id
     * @return list of groups for a user
     */
-  def listGroups(id: String): F[List[Group]] = super.list[Group]("groups", uri / id / "groups", Query.empty)
+  def listGroups(id: String): F[List[Group]] = super.list[Group]("groups", uri / id / "groups")
 
   /**
     * Lists groups for a specified user
@@ -54,7 +54,7 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session)
     * @param id the user id
     * @return list of groups for a user
     */
-  def listProjects(id: String): F[List[Project]] = super.list[Project]("projects", uri / id / "projects", Query.empty)
+  def listProjects(id: String): F[List[Project]] = super.list[Project]("projects", uri / id / "projects")
 
   /**
     * @param id           the user identifier

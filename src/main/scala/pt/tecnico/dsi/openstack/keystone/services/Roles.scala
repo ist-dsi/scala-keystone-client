@@ -87,7 +87,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
       Option.when(includeNames)("include_names" -> Option.empty) ++
       Option.when(includeSubtree)("include_subtree" -> Option.empty)
     
-    list[Assignment]("role_assignments", baseUri / "role_assignments", Query.fromVector(query))
+    list[Assignment]("role_assignments", (baseUri / "role_assignments").copy(query = Query.fromVector(query)))
   }
   
   def listAssignmentsForUser(id: String): F[List[UserAssignment]] =

@@ -52,7 +52,7 @@ final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session)
     */
   def listUsers(id: String, passwordExpiresAt: Option[String] = None): F[List[User]] = {
     val query = passwordExpiresAt.fold(Query.empty)(value => Query.fromPairs("password_expires_at" -> value))
-    super.list[User]("users", uri / id / "users", query)
+    super.list[User]("users", (uri / id / "users").copy(query = query))
   }
 
   def addUser(id: String, userId: String): F[Unit] = client.expect(PUT(uri / id / "users" / userId))

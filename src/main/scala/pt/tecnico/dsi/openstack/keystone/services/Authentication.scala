@@ -3,7 +3,7 @@ package pt.tecnico.dsi.openstack.keystone.services
 import cats.effect.Sync
 import org.http4s.Method.{DELETE, GET, HEAD}
 import org.http4s.client.Client
-import org.http4s.{Header, Query, Uri}
+import org.http4s.{Header, Uri}
 import pt.tecnico.dsi.openstack.common.services.Service
 import pt.tecnico.dsi.openstack.keystone.models.Scope.System
 import pt.tecnico.dsi.openstack.keystone.models.{CatalogEntry, Domain, Project, Session}
@@ -26,12 +26,12 @@ final class Authentication[F[_]: Sync: Client](baseUri: Uri, session: Session) e
   def revoke(token: String): F[Unit] = client.expect(DELETE(uri / "tokens", authToken, subjectToken(token)))
 
   /** Get service catalog. */
-  def serviceCatalog: F[List[CatalogEntry]] = super.list[CatalogEntry]("catalog", uri / "catalog", Query.empty)
+  def serviceCatalog: F[List[CatalogEntry]] = super.list[CatalogEntry]("catalog", uri / "catalog")
 
   /** Get available project scopes. */
-  def projectScopes: F[List[Project]] = super.list[Project]("projects", uri / "projects", Query.empty)
+  def projectScopes: F[List[Project]] = super.list[Project]("projects", uri / "projects")
   /** Get available domain scopes */
-  def domainScopes: F[List[Domain]] = super.list[Domain]("domains", uri / "domains", Query.empty)
+  def domainScopes: F[List[Domain]] = super.list[Domain]("domains", uri / "domains")
   /** Get available system scopes */
   def systemScopes: F[System] = client.expect(GET(uri / "system"))
 }
