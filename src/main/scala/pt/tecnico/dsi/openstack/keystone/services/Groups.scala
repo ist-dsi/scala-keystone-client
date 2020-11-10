@@ -13,8 +13,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{Group, KeystoneError, Session, 
 final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Group, Group.Create, Group.Update](baseUri, "group", session.authToken)
   with UniqueWithinDomain[F, Group] {
-  import dsl._
-
+  
   /**
     * @param name filters the response by a group name.
     * @param domainId filters the response by a domain ID.
@@ -22,10 +21,7 @@ final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session)
     */
   def list(name: Option[String] = None, domainId: Option[String] = None): F[List[Group]] =
     list(Query("name" -> name, "domain_ id" -> domainId))
-  
-  override def update(id: String, update: Group.Update, extraHeaders: Header*): F[Group] =
-    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
-  
+
   override def defaultResolveConflict(existing: Group, create: Group.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Group] = {
     val updated = Group.Update(
       description = Option(create.description).filter(_ != existing.description),
@@ -39,11 +35,14 @@ final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session)
     createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
       case KeystoneError(conflicting(name, domainId), Conflict.code, _) =>
         apply(name, domainId).flatMap { existing =>
-          getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name, on domain with id $domainId.")
+          getLogger.info(s"createOrUpdate: found unique ${this.name} (id: ${existing.id}) with the correct name, on domain with id $domainId.")
           resolveConflict(existing, create)
         }
     }
   }
+  
+  override def update(id: String, update: Group.Update, extraHeaders: Header*): F[Group] =
+    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
   
   //TODO: passwordExpiresAt should not be a string
   //https://docs.openstack.org/api-ref/identity/v3/index.html?expanded=check-whether-user-belongs-to-group-detail,list-users-in-group-detail#list-users-in-group
@@ -56,8 +55,11 @@ final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session)
     val query = passwordExpiresAt.fold(Query.empty)(value => Query.fromPairs("password_expires_at" -> value))
     super.list[User]("users", (uri / id / "users").copy(query = query))
   }
-
-  def addUser(id: String, userId: String): F[Unit] = client.expect(PUT(uri / id / "users" / userId))
+  
+  def addUser(id: String, userId: String): F[Unit] = super.expect(wrappedAt = None, PUT, uri / id / "users" / userId)
   def removeUser(id: String, userId: String): F[Unit] = super.delete(uri / id / "users" / userId)
-  def isUserInGroup(id: String, userId: String): F[Boolean] = client.successful(HEAD(uri / id / "users" / userId))
+  def isUserInGroup(id: String, userId: String): F[Boolean] = {
+    import dsl._
+    client.successful(HEAD(uri / id / "users" / userId, authToken))
+  }
 }

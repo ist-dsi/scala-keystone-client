@@ -33,5 +33,5 @@ final class Authentication[F[_]: Sync: Client](baseUri: Uri, session: Session) e
   /** Get available domain scopes */
   def domainScopes: F[List[Domain]] = super.list[Domain]("domains", uri / "domains")
   /** Get available system scopes */
-  def systemScopes: F[System] = client.expect(GET(uri / "system"))
+  def systemScopes: F[System] = super.stream[System]("system", uri / "system").head.compile.lastOrError
 }

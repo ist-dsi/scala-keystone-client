@@ -33,9 +33,6 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
       "parent_id" -> parentId,
     ))
   
-  override def update(id: String, update: Project.Update, extraHeaders: Header*): F[Project] =
-    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
-  
   override def defaultResolveConflict(existing: Project, create: Project.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Project] = {
     val newTags =
       if (keepExistingElements) create.tags ++ existing.tags.diff(create.tags)
@@ -86,11 +83,14 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
     }
   }
   
+  override def update(id: String, update: Project.Update, extraHeaders: Header*): F[Project] =
+    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+  
+  override protected def updateEnable(id: String, enabled: Boolean): F[Project] =
+    update(id, Project.Update(enabled = Some(enabled)))
+  
   /** Allows performing role assignment operations on the project with `id` */
-  def on(id: String): RoleAssignment[F] =
-    new RoleAssignment(baseUri, Scope.Project(id), session)
+  def on(id: String): RoleAssignment[F] = new RoleAssignment(baseUri, Scope.Project(id), session)
   /** Allows performing role assignment operations on `project`. */
   def on(project: Project): RoleAssignment[F] = on(project.id)
-
-  override protected def updateEnable(id: String, enabled: Boolean): F[Project] = update(id, Project.Update(enabled = Some(enabled)))
 }

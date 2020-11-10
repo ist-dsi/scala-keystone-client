@@ -21,10 +21,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
     */
   def list(name: Option[String] = None, domainId: Option[String] = None): F[List[Role]] =
     list(Query("name" -> name, "domain_id" -> domainId))
-  
-  override def update(id: String, update: Role.Update, extraHeaders: Header*): F[Role] =
-    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
-  
+
   override def defaultResolveConflict(existing: Role, create: Role.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Role] = {
     val updated = Role.Update(
       description = if (create.description != existing.description) create.description else None,
@@ -41,7 +38,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
           case Some(domainId) =>
             // We got a Conflict and we have a domainId so we can find the existing Role since it must already exist
             apply(name, domainId).flatMap { existing =>
-              getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name, on domain with id $domainId.")
+              getLogger.info(s"createOrUpdate: found unique ${this.name} (id: ${existing.id}) with the correct name, on domain with id $domainId.")
               resolveConflict(existing, create)
             }
           case None =>
@@ -49,7 +46,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
               // We know the domainId must be empty so we can use that to further refine the search
               list.filter(_.domainId.isEmpty) match {
                 case List(existing) =>
-                  getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name.")
+                  getLogger.info(s"createOrUpdate: found unique ${this.name} (id: ${existing.id}) with the correct name.")
                   resolveConflict(existing, create)
                 case _ =>
                   // There is more than one role with name `create.name`. We do not have enough information to disambiguate between them.
@@ -59,6 +56,9 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
         }
     }
   }
+  
+  override def update(id: String, update: Role.Update, extraHeaders: Header*): F[Role] =
+    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
   
   /** Allows performing role assignment operations on the domain with `id` */
   def onDomain(id: String): RoleAssignment[F] =

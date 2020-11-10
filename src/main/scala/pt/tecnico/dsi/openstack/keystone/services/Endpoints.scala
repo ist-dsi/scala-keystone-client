@@ -12,6 +12,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{Endpoint, Interface, KeystoneEr
 final class Endpoints[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Endpoint, Endpoint.Create, Endpoint.Update](baseUri, "endpoint", session.authToken)
   with EnableDisableEndpoints[F, Endpoint] {
+  
   /**
     * @param interface filters the response by an interface.
     * @param serviceId filters the response by a domain ID.
@@ -23,11 +24,6 @@ final class Endpoints[F[_]: Sync: Client](baseUri: Uri, session: Session)
       "service_ id" -> serviceId,
       "region_id" -> regionId,
     ))
-  
-  override def update(id: String, update: Endpoint.Update, extraHeaders: Header*): F[Endpoint] =
-    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
-  
-  override protected def updateEnable(id: String, enabled: Boolean): F[Endpoint] = update(id, Endpoint.Update(enabled = Some(enabled)))
   
   override def defaultResolveConflict(existing: Endpoint, create: Endpoint.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Endpoint] = {
     val updated = Endpoint.Update(
@@ -53,4 +49,10 @@ final class Endpoints[F[_]: Sync: Client](baseUri: Uri, session: Session)
         Sync[F].raiseError(KeystoneError(message, Conflict.code, Conflict.reason))
     }
   }
+  
+  override def update(id: String, update: Endpoint.Update, extraHeaders: Header*): F[Endpoint] =
+    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+  
+  override protected def updateEnable(id: String, enabled: Boolean): F[Endpoint] =
+    update(id, Endpoint.Update(enabled = Some(enabled)))
 }

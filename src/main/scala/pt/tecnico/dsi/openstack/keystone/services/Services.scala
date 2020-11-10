@@ -12,19 +12,14 @@ import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Service, Session
 final class Services[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Service, Service.Create, Service.Update](baseUri, "service", session.authToken)
   with EnableDisableEndpoints[F, Service] {
+  
   /**
     * @param name Filters the response by a service name.
     * @param `type` Filters the response by a service type.
     * @return a stream of services filtered by the various parameters.
     */
-  def list(name: Option[String] = None, `type`: Option[String] = None): F[List[Service]] =
-    list(Query("name" -> name, "type" -> `type`))
+  def list(name: Option[String] = None, `type`: Option[String] = None): F[List[Service]] = list(Query("name" -> name, "type" -> `type`))
   
-  override def update(id: String, update: Service.Update, extraHeaders: Header*): F[Service] =
-    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
-  
-  override protected def updateEnable(id: String, enabled: Boolean): F[Service] = update(id, Service.Update(enabled = Some(enabled)))
-
   override def defaultResolveConflict(existing: Service, create: Service.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Service] = {
     val updated = Service.Update(
       description = if (create.description != existing.description) create.description else None,
@@ -46,4 +41,10 @@ final class Services[F[_]: Sync: Client](baseUri: Uri, session: Session)
         Sync[F].raiseError(KeystoneError(message, Conflict.code, Conflict.reason))
     }
   }
+  
+  override def update(id: String, update: Service.Update, extraHeaders: Header*): F[Service] =
+    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+  
+  override protected def updateEnable(id: String, enabled: Boolean): F[Service] =
+    update(id, Service.Update(enabled = Some(enabled)))
 }

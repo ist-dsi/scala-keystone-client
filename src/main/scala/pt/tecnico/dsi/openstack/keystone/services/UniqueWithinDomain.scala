@@ -18,29 +18,25 @@ trait UniqueWithinDomain[F[_], T <: Identifiable] { this: CrudService[F, T, _, _
   def listByDomain(domainId: String): F[List[T]] = list("domain_id" -> domainId)
 
   /**
-    * Get detailed information about the `T` specified by name and domainId, assuming it exists.
-    *
-    * @param name the `T` name
-    * @param domainId the domain id
-    * @return the `T` matching the name in a specific domain. If no such `T` exists F will contain an error.
-    */
-  def apply(name: String, domainId: String): F[T] = {
-    // The name is unique within the owning domain.
-    get(name, domainId).flatMap {
-      case Some(t) => F.pure(t)
-      case None =>
-        val tName = this.getClass.getSimpleName.dropRight(1).toLowerCase
-        F.raiseError(new NoSuchElementException(s"""Could not find ${tName} "$name" with domain id"$domainId""""))
-    }
-  }
-  
-  /**
    * Get detailed information about the `T` specified by name and domainId.
    *
    * @param name the `T` name
    * @param domainId the domain id
    * @return a Some `T` matching the name in a specific domain if it exists. A None otherwise.
    */
-  def get(name: String, domainId: String): F[Option[T]] =
-    stream("name" -> name, "domain_id" -> domainId).compile.last
+  def get(name: String, domainId: String): F[Option[T]] = stream("name" -> name, "domain_id" -> domainId).compile.last
+  
+  /**
+   * Get detailed information about the `T` specified by name and domainId, assuming it exists.
+   *
+   * @param name the `T` name
+   * @param domainId the domain id
+   * @return the `T` matching the name in a specific domain. If no such `T` exists F will contain an error.
+   */
+  def apply(name: String, domainId: String): F[T] =
+    get(name, domainId).flatMap {
+      case Some(model) => F.pure(model)
+      case None =>
+        F.raiseError(new NoSuchElementException(s"""Could not find ${this.name} named "$name" with domain id "$domainId""""))
+    }
 }

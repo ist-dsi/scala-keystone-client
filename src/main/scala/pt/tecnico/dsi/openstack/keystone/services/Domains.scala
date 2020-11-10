@@ -3,7 +3,7 @@ package pt.tecnico.dsi.openstack.keystone.services
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import org.http4s.Method.DELETE
-import org.http4s.Status.{Conflict, Forbidden, NotFound, Successful}
+import org.http4s.Status.{Conflict, Forbidden, NotFound, Successful, Gone}
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
 import org.log4s.getLogger
@@ -13,7 +13,6 @@ import pt.tecnico.dsi.openstack.keystone.models.{Domain, KeystoneError, Scope, S
 final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Domain, Domain.Create, Domain.Update](baseUri, "domain", session.authToken)
   with EnableDisableEndpoints[F, Domain] {
-  import dsl._
   
   /**
     * @param name filters the response by a domain name.
@@ -24,30 +23,25 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
     list(Query("name" -> name, "enabled" -> enabled.map(_.toString)))
   
   /**
-    * Get detailed information about the domain specified by name, assuming it exists.
-    *
-    * @param name the domain name
-    * @return the domain matching the name. If none exists F will contain an error.
-    */
-  def applyByName(name: String): F[Domain] = {
-    // A domain name is globally unique across all domains.
-    getByName(name).flatMap {
-      case Some(domain) => F.pure(domain)
-      case None => F.raiseError(new NoSuchElementException(s"""Could not find domain "$name""""))
-    }
-  }
-  /**
    * Get detailed information about the domain specified by name.
    *
    * @param name the domain name
    * @return a Some of the domain matching the name if it exists. A None otherwise.
    */
-  def getByName(name: String): F[Option[Domain]] =
-    stream("name" -> name).compile.last
+  def getByName(name: String): F[Option[Domain]] = stream("name" -> name).compile.last
   
-  override def update(id: String, update: Domain.Update, extraHeaders: Header*): F[Domain] =
-    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
-  
+  /**
+   * Get detailed information about the domain specified by name, assuming it exists.
+   *
+   * @param name the domain name
+   * @return the domain matching the name. If none exists F will contain an error.
+   */
+  def applyByName(name: String): F[Domain] =
+    getByName(name).flatMap {
+      case Some(domain) => F.pure(domain)
+      case None => F.raiseError(new NoSuchElementException(s"""Could not find domain "$name""""))
+    }
+
   override def defaultResolveConflict(existing: Domain, create: Domain.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Domain] = {
     val updated = Domain.Update(
       description = Option(create.description).filter(_ != existing.description),
@@ -63,11 +57,17 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
     createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
       case KeystoneError(conflicting(name), Conflict.code, _) =>
         applyByName(name).flatMap { existing =>
-          getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name.")
+          getLogger.info(s"createOrUpdate: found unique ${this.name} (id: ${existing.id}) with the correct name.")
           resolveConflict(existing, create)
         }
     }
   }
+  
+  override def update(id: String, update: Domain.Update, extraHeaders: Header*): F[Domain] =
+    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+  
+  override protected def updateEnable(id: String, enabled: Boolean): F[Domain] =
+    update(id, Domain.Update(enabled = Some(enabled)))
   
   /**
     * Deletes the domain. This also deletes all entities owned by the domain, such as users, groups, and projects, and any credentials
@@ -77,8 +77,9 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
     * @param force if set to true, the domain will first be disabled and then deleted.
     */
   def delete(id: String, force: Boolean = false): F[Unit] = {
+    import dsl._
     DELETE(uri / id, authToken).flatMap(client.run(_).use {
-      case Successful(_) | NotFound(_) => F.pure(())
+      case Successful(_) | NotFound(_) | Gone(_) => F.pure(())
       case response =>
         // If you try to delete an enabled domain you'll get a Forbidden.
         if (response.status == Forbidden && force) {
@@ -91,10 +92,7 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
   }
   
   /** Allows performing role assignment operations on the domain with `id` */
-  def on(id: String): RoleAssignment[F] =
-    new RoleAssignment(baseUri, Scope.Domain.id(id), session)
+  def on(id: String): RoleAssignment[F] = new RoleAssignment(baseUri, Scope.Domain.id(id), session)
   /** Allows performing role assignment operations on `domain`. */
   def on(domain: Domain): RoleAssignment[F] = on(domain.id)
-  
-  override protected def updateEnable(id: String, enabled: Boolean): F[Domain] = update(id, Domain.Update(enabled = Some(enabled)))
 }

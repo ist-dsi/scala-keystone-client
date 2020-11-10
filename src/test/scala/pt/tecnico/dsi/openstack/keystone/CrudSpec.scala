@@ -4,9 +4,8 @@ import scala.annotation.nowarn
 import cats.effect.{IO, Resource}
 import cats.implicits._
 import org.http4s.Query
-import org.http4s.Status.NotFound
 import org.scalatest.{Assertion, EitherValues}
-import pt.tecnico.dsi.openstack.common.models.{Identifiable, UnexpectedStatus}
+import pt.tecnico.dsi.openstack.common.models.Identifiable
 import pt.tecnico.dsi.openstack.common.services.CrudService
 
 abstract class CrudSpec[Model <: Identifiable, Create, Update](val name: String) extends Utils with EitherValues {
@@ -57,10 +56,9 @@ abstract class CrudSpec[Model <: Identifiable, Create, Update](val name: String)
     s"apply ${name}s (non-existing id)" in {
       val id = "non-existing-id"
       service.apply(id).attempt.idempotently { either =>
-        either.left.value shouldBe a[UnexpectedStatus]
-        val unexpectedStatus = either.left.value.asInstanceOf[UnexpectedStatus]
-        unexpectedStatus.status shouldBe NotFound
-        unexpectedStatus.getMessage() should include regex s"Could not find [^:]+: $id"
+        either.left.value shouldBe a[NoSuchElementException]
+        val unexpectedStatus = either.left.value.asInstanceOf[NoSuchElementException]
+        unexpectedStatus.getMessage should include (s"Could not find $name")
       }
     }
 

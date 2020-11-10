@@ -11,15 +11,12 @@ import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Region, Session}
 
 final class Regions[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Region, Region.Create, Region.Update](baseUri, "region", session.authToken) {
+  
   /**
     * @param parentRegionId filters the response by a parent region, by ID.
     * @return a stream of regions filtered by the various parameters.
     */
-  def list(parentRegionId: Option[String] = None): F[List[Region]] =
-    list(Query("parent_region_id" -> parentRegionId))
-  
-  override def update(id: String, update: Region.Update, extraHeaders: Header*): F[Region] =
-    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+  def list(parentRegionId: Option[String] = None): F[List[Region]] = list(Query("parent_region_id" -> parentRegionId))
   
   override def defaultResolveConflict(existing: Region, create: Region.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Region] = {
     val updated = Region.Update(
@@ -40,4 +37,7 @@ final class Regions[F[_]: Sync: Client](baseUri: Uri, session: Session)
         }
     }
   }
+  
+  override def update(id: String, update: Region.Update, extraHeaders: Header*): F[Region] =
+    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
 }

@@ -1,8 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
 import cats.effect.Sync
-import cats.syntax.flatMap._
-import cats.syntax.functor._
 import org.http4s.Method.{HEAD, PUT}
 import org.http4s.client.Client
 import org.http4s.{Query, Uri}
@@ -153,7 +151,7 @@ class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope:
   
   final class Is(roleId: String) {
     private def assignedTo(subjectType: String, subjectId: String): F[Boolean] =
-      HEAD(rolesApiUri(subjectType, subjectId) / roleId, authToken).flatMap(client.expectOption(_)(void)).map(_.isDefined)
+      client.successful(HEAD(rolesApiUri(subjectType, subjectId) / roleId, authToken))
     
     def assignedToUser(id: String): F[Boolean] = assignedTo("users", id)
     def assignedToGroup(id: String): F[Boolean] = assignedTo("groups", id)
