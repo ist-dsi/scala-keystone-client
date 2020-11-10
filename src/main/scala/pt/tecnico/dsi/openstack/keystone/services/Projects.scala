@@ -6,6 +6,7 @@ import cats.syntax.functor._
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
+import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Project, Scope, Session}
 
@@ -24,13 +25,13 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
     */
   def list(name: Option[String] = None, domainId: Option[String] = None, enabled: Option[Boolean],
            isDomain: Option[Boolean] = None, parentId: Option[String] = None): F[List[Project]] =
-    list(Query.fromVector(Vector(
+    list(Query(
       "name" -> name,
       "domain_ id" -> domainId,
       "enabled" -> enabled.map(_.toString),
       "is_domain" -> isDomain.map(_.toString),
       "parent_id" -> parentId,
-    )))
+    ))
   
   override def update(id: String, update: Project.Update, extraHeaders: Header*): F[Project] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
@@ -56,7 +57,7 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
         // We got a Conflict while creating a project with isDomain = true, so a project named create.name with id_domain = true must exist.
         // Currently Keystone does not accept the limit query param but it might in the future.
         // We only need 2 results to disambiguate whether the project name is unique or not.
-        list(Query.fromPairs("name" -> create.name, "is_domain" -> "true", "limit" -> "2")).flatMap {
+        list("name" -> create.name, "is_domain" -> "true", "limit" -> "2").flatMap {
           case List(existing) => resolveConflict(existing, create)
           case _ =>
             // TODO: I think the initial post will have already thrown a similar response
@@ -76,7 +77,10 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
         }
         computeDomainId.flatMap { domainId =>
           // We got a Conflict so we must be able to find the existing Project
-          apply(create.name, domainId).flatMap(resolveConflict(_, create))
+          apply(create.name, domainId).flatMap { existing =>
+            getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct name and domainId.")
+            resolveConflict(existing, create)
+          }
         }
       }
     }

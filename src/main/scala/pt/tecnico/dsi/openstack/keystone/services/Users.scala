@@ -7,6 +7,7 @@ import org.http4s.Method.POST
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
+import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{Group, KeystoneError, Project, Session, User}
 
@@ -30,7 +31,7 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session)
     */
   def list(name: Option[String] = None, domainId: Option[String] = None, passwordExpiresAt: Option[String], enabled: Option[Boolean],
            idpId: Option[String] = None, protocolId: Option[String] = None, uniqueId: Option[String] = None): F[List[User]] =
-    list(Query.fromVector(Vector(
+    list(Query(
       "name" -> name,
       "domain_ id" -> domainId,
       "password_expires_at" -> passwordExpiresAt,
@@ -38,7 +39,7 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session)
       "idp_id" -> idpId,
       "protocol_id" -> protocolId,
       "unique_id" -> uniqueId,
-    )))
+    ))
 
   /**
     * Lists groups for a specified user
@@ -108,7 +109,11 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session)
     (resolveConflict: (User, User.Create) => F[User] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[User] = {
     val conflicting = """.*?Duplicate entry found with name ([^ ]+) at domain ID ([^.]+)\.""".r
     createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
-      case KeystoneError(conflicting(name, domainId), Conflict.code, _) => apply(name, domainId).flatMap(resolveConflict(_, create))
+      case KeystoneError(conflicting(name, domainId), Conflict.code, _) =>
+        apply(name, domainId).flatMap { existing =>
+          getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct name, on domain with id $domainId.")
+          resolveConflict(existing, create)
+        }
     }
   }
   

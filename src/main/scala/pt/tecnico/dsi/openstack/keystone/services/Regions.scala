@@ -5,6 +5,7 @@ import cats.syntax.flatMap._
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
+import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Region, Session}
 
@@ -15,9 +16,7 @@ final class Regions[F[_]: Sync: Client](baseUri: Uri, session: Session)
     * @return a stream of regions filtered by the various parameters.
     */
   def list(parentRegionId: Option[String] = None): F[List[Region]] =
-    list(Query.fromVector(Vector(
-      "parent_region_id" -> parentRegionId,
-    )))
+    list(Query("parent_region_id" -> parentRegionId))
   
   override def update(id: String, update: Region.Update, extraHeaders: Header*): F[Region] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
@@ -34,7 +33,11 @@ final class Regions[F[_]: Sync: Client](baseUri: Uri, session: Session)
     (resolveConflict: (Region, Region.Create) => F[Region] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Region] = {
     val conflicting = """.*?Duplicate ID, ([^.]+)\..*?""".r
     createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
-      case KeystoneError(conflicting(id), Conflict.code, _) => apply(id).flatMap(resolveConflict(_, create))
+      case KeystoneError(conflicting(id), Conflict.code, _) =>
+        apply(id).flatMap { existing =>
+          getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct name.")
+          resolveConflict(existing, create)
+        }
     }
   }
 }

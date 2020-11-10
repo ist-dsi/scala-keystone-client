@@ -6,6 +6,7 @@ import org.http4s.Method.DELETE
 import org.http4s.Status.{Conflict, Forbidden, NotFound, Successful}
 import org.http4s.client.{Client, UnexpectedStatus}
 import org.http4s.{Header, Query, Uri}
+import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{Domain, KeystoneError, Scope, Session}
 
@@ -20,10 +21,7 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
     * @return a stream of domains filtered by the various parameters.
     */
   def list(name: Option[String] = None, enabled: Option[Boolean]): F[List[Domain]] =
-    list(Query.fromVector(Vector(
-      "name" -> name,
-      "enabled" -> enabled.map(_.toString),
-    )))
+    list(Query("name" -> name, "enabled" -> enabled.map(_.toString)))
   
   /**
     * Get detailed information about the domain specified by name, assuming it exists.
@@ -45,7 +43,7 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
    * @return a Some of the domain matching the name if it exists. A None otherwise.
    */
   def getByName(name: String): F[Option[Domain]] =
-    stream(Query.fromPairs("name" -> name)).compile.last
+    stream("name" -> name).compile.last
   
   override def update(id: String, update: Domain.Update, extraHeaders: Header*): F[Domain] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
@@ -63,7 +61,11 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
     // How do you think Openstack implements Domains? As a project with isDomain = true? Thumbs up for good implementations </sarcasm>
     val conflicting = """.*?it is not permitted to have two projects acting as domains with the same name: ([^.]+)\.""".r
     createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
-      case KeystoneError(conflicting(name), Conflict.code, _) => applyByName(name).flatMap(resolveConflict(_, create))
+      case KeystoneError(conflicting(name), Conflict.code, _) =>
+        applyByName(name).flatMap { existing =>
+          getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct name.")
+          resolveConflict(existing, create)
+        }
     }
   }
   

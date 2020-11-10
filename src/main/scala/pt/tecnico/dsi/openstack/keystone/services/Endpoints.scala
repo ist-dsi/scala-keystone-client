@@ -5,6 +5,7 @@ import cats.syntax.flatMap._
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
+import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{Endpoint, Interface, KeystoneError, Session}
 
@@ -17,11 +18,11 @@ final class Endpoints[F[_]: Sync: Client](baseUri: Uri, session: Session)
     * @return a stream of endpoints filtered by the various parameters.
     */
   def list(interface: Option[Interface] = None, serviceId: Option[String] = None, regionId: Option[String] = None): F[List[Endpoint]] =
-    list(Query.fromVector(Vector(
+    list(Query(
       "interface" -> interface.map(_.toString.toLowerCase),
       "service_ id" -> serviceId,
       "region_id" -> regionId,
-    )))
+    ))
   
   override def update(id: String, update: Endpoint.Update, extraHeaders: Header*): F[Endpoint] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
@@ -41,7 +42,9 @@ final class Endpoints[F[_]: Sync: Client](baseUri: Uri, session: Session)
     // Openstack always creates a new endpoint now matter what.
     list(Some(create.interface), Some(create.serviceId), Some(create.regionId)).flatMap {
       case Nil => this.create(create, extraHeaders:_*)
-      case List(existing) => resolveConflict(existing, create)
+      case List(existing) =>
+        getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct interface, serviceId, and regionId.")
+        resolveConflict(existing, create)
       case _ =>
         val message = s"""Cannot create a Endpoint idempotently because more than one exists with
                          |Interface: ${create.interface}

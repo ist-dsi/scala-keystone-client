@@ -6,6 +6,7 @@ import cats.syntax.flatMap._
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
+import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models._
 
@@ -19,10 +20,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
     * @return a stream of roles filtered by the various parameters.
     */
   def list(name: Option[String] = None, domainId: Option[String] = None): F[List[Role]] =
-    list(Query.fromVector(Vector(
-      "name" -> name,
-      "domain_id" -> domainId,
-    )))
+    list(Query("name" -> name, "domain_id" -> domainId))
   
   override def update(id: String, update: Role.Update, extraHeaders: Header*): F[Role] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
@@ -42,12 +40,18 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
         Option(domainIdOpt) match {
           case Some(domainId) =>
             // We got a Conflict and we have a domainId so we can find the existing Role since it must already exist
-            apply(name, domainId).flatMap(resolveConflict(_, create))
+            apply(name, domainId).flatMap { existing =>
+              getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct " +
+                s"name, on domain with id $domainId.")
+              resolveConflict(existing, create)
+            }
           case None =>
             list(Query.fromPairs("name" -> create.name), extraHeaders:_*).flatMap { list =>
               // We know the domainId must be empty so we can use that to further refine the search
               list.filter(_.domainId.isEmpty) match {
-                case List(existing) => resolveConflict(existing, create)
+                case List(existing) =>
+                  getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct name.")
+                  resolveConflict(existing, create)
                 case _ =>
                   // There is more than one role with name `create.name`. We do not have enough information to disambiguate between them.
                   Sync[F].raiseError(error)

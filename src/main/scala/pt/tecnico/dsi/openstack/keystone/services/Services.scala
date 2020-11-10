@@ -5,6 +5,7 @@ import cats.syntax.flatMap._
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
+import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Service, Session}
 
@@ -17,10 +18,7 @@ final class Services[F[_]: Sync: Client](baseUri: Uri, session: Session)
     * @return a stream of services filtered by the various parameters.
     */
   def list(name: Option[String] = None, `type`: Option[String] = None): F[List[Service]] =
-    list(Query.fromVector(Vector(
-      "name" -> name,
-      "type" -> `type`,
-    )))
+    list(Query("name" -> name, "type" -> `type`))
   
   override def update(id: String, update: Service.Update, extraHeaders: Header*): F[Service] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
@@ -40,9 +38,11 @@ final class Services[F[_]: Sync: Client](baseUri: Uri, session: Session)
     // Openstack always creates a new service now matter what.
     list(Some(create.name), Some(create.`type`)).flatMap {
       case Nil => this.create(create, extraHeaders:_*)
-      case List(existing) => resolveConflict(existing, create)
+      case List(existing) =>
+        getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct name and type")
+        resolveConflict(existing, create)
       case _ =>
-        val message = s"Cannot create a service idempotently because more than one service with name: ${create.name} and type: ${create.`type`} exits."
+        val message = s"Cannot create a service idempotently because more than one service with name: ${create.name} and type: ${create.`type`} exists."
         Sync[F].raiseError(KeystoneError(message, Conflict.code, Conflict.reason))
     }
   }
