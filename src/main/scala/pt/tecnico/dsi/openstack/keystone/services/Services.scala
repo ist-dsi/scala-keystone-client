@@ -39,7 +39,7 @@ final class Services[F[_]: Sync: Client](baseUri: Uri, session: Session)
     list(Some(create.name), Some(create.`type`)).flatMap {
       case Nil => this.create(create, extraHeaders:_*)
       case List(existing) =>
-        getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct name and type")
+        getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name and type")
         resolveConflict(existing, create)
       case _ =>
         val message = s"Cannot create a service idempotently because more than one service with name: ${create.name} and type: ${create.`type`} exists."

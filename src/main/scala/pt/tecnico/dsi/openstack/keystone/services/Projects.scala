@@ -78,7 +78,7 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
         computeDomainId.flatMap { domainId =>
           // We got a Conflict so we must be able to find the existing Project
           apply(create.name, domainId).flatMap { existing =>
-            getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct name and domainId.")
+            getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name and domainId.")
             resolveConflict(existing, create)
           }
         }

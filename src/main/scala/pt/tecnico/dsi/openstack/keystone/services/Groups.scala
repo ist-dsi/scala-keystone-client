@@ -39,7 +39,7 @@ final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session)
     createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
       case KeystoneError(conflicting(name, domainId), Conflict.code, _) =>
         apply(name, domainId).flatMap { existing =>
-          getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct name, on domain with id $domainId.")
+          getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name, on domain with id $domainId.")
           resolveConflict(existing, create)
         }
     }

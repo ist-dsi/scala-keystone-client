@@ -43,7 +43,7 @@ final class Endpoints[F[_]: Sync: Client](baseUri: Uri, session: Session)
     list(Some(create.interface), Some(create.serviceId), Some(create.regionId)).flatMap {
       case Nil => this.create(create, extraHeaders:_*)
       case List(existing) =>
-        getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct interface, serviceId, and regionId.")
+        getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct interface, serviceId, and regionId.")
         resolveConflict(existing, create)
       case _ =>
         val message = s"""Cannot create a Endpoint idempotently because more than one exists with

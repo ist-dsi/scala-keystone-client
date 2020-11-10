@@ -35,7 +35,7 @@ final class Regions[F[_]: Sync: Client](baseUri: Uri, session: Session)
     createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
       case KeystoneError(conflicting(id), Conflict.code, _) =>
         apply(id).flatMap { existing =>
-          getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct name.")
+          getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name.")
           resolveConflict(existing, create)
         }
     }

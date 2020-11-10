@@ -41,8 +41,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
           case Some(domainId) =>
             // We got a Conflict and we have a domainId so we can find the existing Role since it must already exist
             apply(name, domainId).flatMap { existing =>
-              getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct " +
-                s"name, on domain with id $domainId.")
+              getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name, on domain with id $domainId.")
               resolveConflict(existing, create)
             }
           case None =>
@@ -50,7 +49,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
               // We know the domainId must be empty so we can use that to further refine the search
               list.filter(_.domainId.isEmpty) match {
                 case List(existing) =>
-                  getLogger.info(s"createOrUpdate $name: found existing and unique $name (id: ${existing.id}) with the correct name.")
+                  getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name.")
                   resolveConflict(existing, create)
                 case _ =>
                   // There is more than one role with name `create.name`. We do not have enough information to disambiguate between them.
