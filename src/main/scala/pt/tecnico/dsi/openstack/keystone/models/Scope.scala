@@ -1,9 +1,11 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
+import cats.derived.ShowPretty
+import cats.{Show, derived}
 import enumeratum.{Enum, EnumEntry}
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, HCursor, Json}
-import io.circe.derivation.{deriveEncoder, deriveDecoder}
+import io.circe.derivation.{deriveDecoder, deriveEncoder}
 
 sealed trait Scope extends EnumEntry
 case object Scope extends Enum[Scope] {
@@ -17,8 +19,17 @@ case object Scope extends Enum[Scope] {
         .map { case (name, domain) => Project(name, domain) }
       idOpt orElse nameOpt
     }
+    
+    implicit val encoder: Encoder[Project] = (project: Project) => Json.obj(
+      "id" -> Option(project.id).asJson,
+      "name" -> Option(project.name).asJson,
+      "domain" -> Option(project.domain).asJson
+    ).dropNullValues
+    implicit val decoder: Decoder[Project] = deriveDecoder[Project]
+    implicit val show: ShowPretty[Project] = derived.semiauto.showPretty
   }
   case class Project(id: String, name: String, domain: Domain) extends Scope
+  
   object Domain {
     def id(id: String): Domain = Domain(id, null)
     def name(name: String): Domain = Domain(null, name)
@@ -33,10 +44,28 @@ case object Scope extends Enum[Scope] {
         case _ => None
       }
     }
+  
+    implicit val encoder: Encoder[Domain] = (domain: Domain) => Json.obj(
+      "id" -> Option(domain.id).asJson,
+      "name" -> Option(domain.name).asJson
+    ).dropNullValues
+    implicit val decoder: Decoder[Domain] = deriveDecoder[Domain]
+    implicit val show: ShowPretty[Domain] = derived.semiauto.showPretty
   }
   case class Domain(id: String, name: String) extends Scope
+  
+  object System {
+    implicit val encoder: Encoder[System] = deriveEncoder[System]
+    implicit val decoder: Decoder[System] = deriveDecoder[System]
+    implicit val show: Show[System] = derived.semiauto.show
+  }
   case class System(all: Boolean = true) extends Scope
-  case object Unscoped extends Scope
+  
+  case object Unscoped extends Scope {
+    implicit val encoderUnscoped: Encoder[Unscoped.type] = (_: Unscoped.type) => "unscoped".asJson
+    // Unscoped represents the absence of a scope, so its impossible to implement a decoder for it
+    implicit val showUnscoped: Show[Unscoped.type] = Show.fromToString
+  }
 
   def fromEnvironment(env: Map[String, String]): Option[Scope] = {
     val projectOpt = Project.fromEnvironment(env)
@@ -45,34 +74,20 @@ case object Scope extends Enum[Scope] {
     projectOpt orElse domainOpt orElse systemOpt
   }
   
-  implicit val decoderProject: Decoder[Project] = deriveDecoder[Project]
-  implicit val decoderDomain: Decoder[Domain] = deriveDecoder[Domain]
-  implicit val decoderSystem: Decoder[System] = deriveDecoder[System]
   implicit val decoder: Decoder[Scope] = { cursor: HCursor =>
     // If we cannot decode to a Project|Domain|System Scope then it is the Unscoped by definition
-    decoderProject.at("project")(cursor)
-      .orElse(decoderDomain.at("domain")(cursor))
-      .orElse(decoderSystem.at("system")(cursor))
-      .orElse(Right(Unscoped))
+    Project.decoder.at("project")(cursor)
+           .orElse(Domain.decoder.at("domain")(cursor))
+           .orElse(System.decoder.at("system")(cursor))
+           .orElse(Right(Unscoped))
   }
-  
-  implicit val encoderProject: Encoder[Project] = (project: Project) => Json.obj(
-    "id" -> Option(project.id).asJson,
-    "name" -> Option(project.name).asJson,
-    "domain" -> Option(project.domain).asJson
-  ).dropNullValues
-  implicit val encoderDomain: Encoder[Domain] = (domain: Domain) => Json.obj(
-    "id" -> Option(domain.id).asJson,
-    "name" -> Option(domain.name).asJson
-  ).dropNullValues
-  implicit val encoderSystem: Encoder[System] = deriveEncoder[System]
-  implicit val encoderUnscoped: Encoder[Unscoped.type] = (_: Unscoped.type) => "unscoped".asJson
   implicit val encoder: Encoder[Scope] = {
     case project: Project => Json.obj("project" -> project.asJson)
     case domain: Domain => Json.obj("domain" -> domain.asJson)
     case system: System => Json.obj("system" -> system.asJson)
     case unscoped: Unscoped.type => unscoped.asJson
   }
-
+  implicit val showUnscoped: Show[Scope] = derived.semiauto.showPretty
+  
   val values = findValues
 }

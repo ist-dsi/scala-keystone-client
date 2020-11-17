@@ -23,7 +23,7 @@ class ServiceSpec extends CrudSpec[Service, Service.Create, Service.Update]("ser
     model.enabled shouldBe create.enabled
   }
   override def createListQuery(name: String, create: Service.Create, repetitions: Int): Query =
-    super.createListQuery(name, create, repetitions).+?("type", create.`type`)
+    super.createListQuery(name, create, repetitions).withQueryParam("type", create.`type`)
   
   override def updateStub: Service.Update = Service.Update(
     name = Some(randomName()),

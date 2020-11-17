@@ -1,6 +1,7 @@
 package pt.tecnico.dsi.openstack.keystone
 
 import scala.annotation.nowarn
+import cats.derived.ShowPretty
 import cats.effect.{IO, Resource}
 import cats.implicits._
 import org.http4s.Query
@@ -8,7 +9,7 @@ import org.scalatest.{Assertion, EitherValues}
 import pt.tecnico.dsi.openstack.common.models.Identifiable
 import pt.tecnico.dsi.openstack.common.services.CrudService
 
-abstract class CrudSpec[Model <: Identifiable, Create, Update](val name: String) extends Utils with EitherValues {
+abstract class CrudSpec[Model <: Identifiable: ShowPretty, Create, Update](val name: String) extends Utils with EitherValues {
   def service: CrudService[IO, Model, Create, Update]
 
   def createStub(name: String): Create
@@ -67,8 +68,14 @@ abstract class CrudSpec[Model <: Identifiable, Create, Update](val name: String)
       service.update(model.id, dummyUpdate).idempotently(compareUpdate(dummyUpdate, _))
     }
 
-    s"delete a ${name}" in resource.use[IO, Assertion] { model =>
+    s"delete ${name}s" in resource.use[IO, Assertion] { model =>
       service.delete(model.id).idempotently(_ shouldBe ())
+    }
+    
+    s"show ${name}s" in resource.use[IO, Assertion] { model =>
+      //This line is a fail fast mechanism, and prevents false positives from the linter
+      println(show"$model")
+      IO("""show"$model"""" should compile): @nowarn
     }
   }
 }

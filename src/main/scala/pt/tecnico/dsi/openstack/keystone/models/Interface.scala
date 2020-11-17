@@ -1,5 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
+import cats.Show
 import enumeratum.{Circe, Enum, EnumEntry}
 import io.circe.{Decoder, Encoder}
 
@@ -13,4 +14,6 @@ case object Interface extends Enum[Interface] {
   case object Internal extends Interface
 
   val values = findValues
+  
+  implicit val show: Show[Interface] = Show.fromToString
 }

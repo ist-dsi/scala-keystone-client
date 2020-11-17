@@ -48,12 +48,9 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
   }
   override def createOrUpdate(create: Project.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
     (resolveConflict: (Project, Project.Create) => F[Project] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Project] = {
-    //val conflicting = """.*?it is not permitted to have two projects with the same name in the same domain : ([^.]+)\.""".r
     createHandleConflict(create, uri, extraHeaders) {
       if (create.isDomain) {
         // We got a Conflict while creating a project with isDomain = true, so a project named create.name with id_domain = true must exist.
-        // Currently Keystone does not accept the limit query param but it might in the future.
-        // We only need 2 results to disambiguate whether the project name is unique or not.
         list("name" -> create.name, "is_domain" -> "true", "limit" -> "2").flatMap {
           case List(existing) => resolveConflict(existing, create)
           case _ =>

@@ -1,10 +1,13 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
 import java.time.OffsetDateTime
+import cats.{Show, derived}
+import cats.derived.ShowPretty
 import cats.effect.Sync
 import io.circe.{Decoder, HCursor}
 import org.http4s.client.Client
 import org.http4s.{Header, Uri}
+import pt.tecnico.dsi.openstack.common.models.showOffsetDateTime
 
 object Session {
   // Not implicit because otherwise the compiler interprets it as an implicit conversion
@@ -17,8 +20,15 @@ object Session {
       auditIds <- tokenCursor.get[List[String]]("audit_ids")
       roles <- tokenCursor.getOrElse[List[Role]]("roles")(List.empty)
       catalog <- tokenCursor.getOrElse[List[CatalogEntry]]("catalog")(List.empty)
-      scope <- tokenCursor.as[Scope] // The sole reason for this handcrafted decoder
+      // The sole reason for this handcrafted decoder, why is the scope directly at the root?
+      // To make things more interesting obviously </sarcasm>
+      scope <- tokenCursor.as[Scope]
     } yield Session(user, expiresAt, issuedAt, auditIds, roles, catalog, scope, authToken)
+  }
+  
+  implicit val show: ShowPretty[Session] = {
+    implicit val showHeader: Show[Header] = Show.show(h => s"${h.name}: <REDACTED>")
+    derived.semiauto.showPretty
   }
 }
 final case class Session(

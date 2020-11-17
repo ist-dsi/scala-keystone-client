@@ -3,8 +3,8 @@ package pt.tecnico.dsi.openstack.keystone.services
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import org.http4s.Method.DELETE
-import org.http4s.Status.{Conflict, Forbidden, NotFound, Successful, Gone}
-import org.http4s.client.{Client, UnexpectedStatus}
+import org.http4s.Status.{Conflict, Forbidden, Gone, NotFound, Successful}
+import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
 import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
@@ -39,7 +39,7 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
   def applyByName(name: String): F[Domain] =
     getByName(name).flatMap {
       case Some(domain) => F.pure(domain)
-      case None => F.raiseError(new NoSuchElementException(s"""Could not find domain "$name""""))
+      case None => F.raiseError(new NoSuchElementException(s"""Could not find domain named "$name""""))
     }
 
   override def defaultResolveConflict(existing: Domain, create: Domain.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Domain] = {
@@ -80,14 +80,11 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
     import dsl._
     DELETE(uri / id, authToken).flatMap(client.run(_).use {
       case Successful(_) | NotFound(_) | Gone(_) => F.pure(())
-      case response =>
+      case Forbidden(_) if force =>
         // If you try to delete an enabled domain you'll get a Forbidden.
-        if (response.status == Forbidden && force) {
-          // If force is set we try again. If that fails then the request is probably really forbidden.
-          disable(id) >> super.delete(id)
-        } else {
-          F.raiseError(UnexpectedStatus(response.status))
-        }
+        // If force is set we try again. If that fails then the request is probably really forbidden.
+        disable(id) >> super.delete(id)
+      case request => super.defaultOnError(request)
     })
   }
   

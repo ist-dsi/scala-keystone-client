@@ -1,5 +1,7 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
+import cats.derived
+import cats.derived.ShowPretty
 import cats.effect.Sync
 import cats.instances.list._
 import cats.syntax.foldable._
@@ -11,6 +13,7 @@ import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 object Group {
   object Create {
     implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
+    implicit val show: ShowPretty[Create] = derived.semiauto.showPretty
   }
   /**
    * Options to create a Group.
@@ -27,6 +30,7 @@ object Group {
   
   object Update {
     implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
+    implicit val show: ShowPretty[Update] = derived.semiauto.showPretty
   }
   /**
    * Options to update a Group.
@@ -45,6 +49,7 @@ object Group {
   }
   
   implicit val codec: Decoder[Group] = deriveDecoder(renaming.snakeCase)
+  implicit val show: ShowPretty[Group] = derived.semiauto.showPretty
 }
 final case class Group(
   id: String,

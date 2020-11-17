@@ -1,16 +1,19 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
 import java.time.OffsetDateTime
+import cats.derived
+import cats.derived.ShowPretty
 import cats.effect.Sync
 import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
+import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link, showOffsetDateTime}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
-import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
 object User {
   object Create {
     implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
+    implicit val show: ShowPretty[Create] = derived.semiauto.showPretty
   }
   /**
    * Options to create a User
@@ -36,6 +39,7 @@ object User {
 
   object Update {
     implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
+    implicit val show: ShowPretty[Update] = derived.semiauto.showPretty
   }
   /**
    * Options to update a User
@@ -75,6 +79,8 @@ object User {
       case Left(_) => cursor
     }
   }
+  
+  implicit val show: ShowPretty[User] = derived.semiauto.showPretty
 }
 final case class User(
   id: String,

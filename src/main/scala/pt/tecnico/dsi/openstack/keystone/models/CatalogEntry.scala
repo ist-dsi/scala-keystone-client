@@ -1,5 +1,7 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
+import cats.derived
+import cats.derived.ShowPretty
 import io.circe.derivation.{deriveDecoder, renaming}
 import io.circe.{Decoder, HCursor}
 
@@ -13,6 +15,8 @@ object CatalogEntry {
     name <- c.get[String]("name")
     urls <- c.get[List[Url]]("endpoints")
   } yield CatalogEntry(tpe, serviceId, name, urls.map(url => Endpoint(url.id, url.interface, url.regionId, url.url, serviceId)))
+  
+  implicit val show: ShowPretty[CatalogEntry] = derived.semiauto.showPretty
 }
 final case class CatalogEntry(`type`: String, serviceId: String, serviceName: String, endpoints: List[Endpoint]) {
   lazy val urisPerInterfacePerRegion: Map[Interface, Map[String, String]] = endpoints.groupBy(_.interface).view.mapValues { perInterface =>
