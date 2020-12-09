@@ -7,7 +7,8 @@ import cats.effect.Sync
 import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
-import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link, showOffsetDateTime}
+import io.chrisdavenport.cats.time.offsetdatetimeInstances
+import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 
 object User {

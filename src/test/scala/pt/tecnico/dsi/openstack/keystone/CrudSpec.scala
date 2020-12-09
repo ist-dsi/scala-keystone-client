@@ -58,8 +58,8 @@ abstract class CrudSpec[Model <: Identifiable: ShowPretty, Create, Update](val n
       val id = "non-existing-id"
       service.apply(id).attempt.idempotently { either =>
         either.left.value shouldBe a[NoSuchElementException]
-        val unexpectedStatus = either.left.value.asInstanceOf[NoSuchElementException]
-        unexpectedStatus.getMessage should include (s"Could not find $name")
+        val exception = either.left.value.asInstanceOf[NoSuchElementException]
+        exception.getMessage should include (s"Could not find $name")
       }
     }
 

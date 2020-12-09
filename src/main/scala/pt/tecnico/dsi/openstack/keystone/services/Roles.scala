@@ -61,19 +61,16 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
   
   /** Allows performing role assignment operations on the domain with `id` */
-  def onDomain(id: String): RoleAssignment[F] =
-    new RoleAssignment(baseUri, Scope.Domain.id(id), session)
+  def onDomain(id: String): RoleAssignment[F] = new RoleAssignment(baseUri, Scope.Domain.id(id), session)
   /** Allows performing role assignment operations on the project with `id` */
-  def onProject(id: String): RoleAssignment[F] =
-    new RoleAssignment(baseUri, Scope.Project(id), session)
+  def onProject(id: String): RoleAssignment[F] = new RoleAssignment(baseUri, Scope.Project(id), session)
   
   /** Allows performing role assignment operations on `domain`. */
   def on(domain: Domain): RoleAssignment[F] = onDomain(domain.id)
   /** Allows performing role assignment operations on `project`. */
   def on(project: Project): RoleAssignment[F] = onDomain(project.id)
   /** Allows performing role assignment operations on system. */
-  def on(@nowarn system: System.type): RoleAssignment[F] =
-    new RoleAssignment(baseUri, Scope.System(), session)
+  def on(@nowarn system: System.type): RoleAssignment[F] = new RoleAssignment(baseUri, Scope.System(), session)
   
   def listAssignments(userId: Option[String] = None, groupId: Option[String] = None, roleId: Option[String] = None,
     domainId: Option[String] = None, projectId: Option[String] = None, system: Option[Boolean] = None,
@@ -93,10 +90,8 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
     list[Assignment]("role_assignments", (baseUri / "role_assignments").copy(query = Query.fromVector(query)))
   }
   
-  def listAssignmentsForUser(id: String): F[List[UserAssignment]] =
-    listAssignments(userId = Some(id)).asInstanceOf[F[List[UserAssignment]]]
-  def listAssignmentsForGroup(id: String): F[List[GroupAssignment]] =
-    listAssignments(groupId = Some(id)).asInstanceOf[F[List[GroupAssignment]]]
+  def listAssignmentsForUser(id: String): F[List[UserAssignment]] = listAssignments(userId = Some(id)).asInstanceOf[F[List[UserAssignment]]]
+  def listAssignmentsForGroup(id: String): F[List[GroupAssignment]] = listAssignments(groupId = Some(id)).asInstanceOf[F[List[GroupAssignment]]]
   def listAssignmentsForRole(id: String): F[List[Assignment]] = listAssignments(roleId = Some(id))
   def listAssignments(user: User): F[List[UserAssignment]] = listAssignmentsForUser(user.id)
   def listAssignments(group: Group): F[List[GroupAssignment]] = listAssignmentsForGroup(group.id)

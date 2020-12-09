@@ -5,7 +5,7 @@ name := "scala-keystone-client"
 // ==== Compile Options =================================================================================================
 // ======================================================================================================================
 javacOptions ++= Seq("-Xlint", "-encoding", "UTF-8", "-Dfile.encoding=utf-8")
-scalaVersion := "2.13.3"
+scalaVersion := "2.13.4"
 
 scalacOptions ++= Seq(
   "-encoding", "utf-8",            // Specify character encoding used by source files.
@@ -41,7 +41,7 @@ scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
 // ==== Dependencies ====================================================================================================
 // ======================================================================================================================
 libraryDependencies ++= Seq(
-  "pt.tecnico.dsi"  %% "scala-openstack-common-clients" % "0.4.2-SNAPSHOT" changing(),
+  "pt.tecnico.dsi"  %% "scala-openstack-common-clients" % "0.5.0-SNAPSHOT" changing(),
   "io.circe"        %% "circe-parser"      % "0.13.0", // Used in Credentials
   "com.beachape"    %% "enumeratum-circe"  % "1.6.1",
   "ch.qos.logback"  %  "logback-classic"   % "1.2.3" % Test,

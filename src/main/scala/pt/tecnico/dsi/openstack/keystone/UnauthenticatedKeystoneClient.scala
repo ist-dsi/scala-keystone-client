@@ -102,7 +102,7 @@ class UnauthenticatedKeystoneClient[F[_]](baseUri: Uri)(implicit client: Client[
     implicit def jsonDecoder[A: Decoder]: EntityDecoder[F, A] = circe.accumulatingJsonOf
   
     val uri: Uri = if (baseUri.path.dropEndsWithSlash.toString.endsWith("v3")) baseUri else baseUri / "v3"
-    POST(authBody(method, scope), uri / "auth" / "tokens").flatMap(client.run(_).use[F, Session] {
+    client.run(POST(authBody(method, scope), uri / "auth" / "tokens")).use[F, Session] {
       case Successful(response) =>
         response.headers.get(CIString("X-Subject-Token")) match {
           case None => F.raiseError(new IllegalStateException("Could not get X-Subject-Token from authentication response."))
@@ -112,7 +112,8 @@ class UnauthenticatedKeystoneClient[F[_]](baseUri: Uri)(implicit client: Client[
         }
       case failedResponse =>
         import cats.instances.string._
+        // https://github.com/http4s/http4s/issues/3707
         failedResponse.bodyText.compile.foldMonoid.flatMap(bodyString => F.raiseError(UnexpectedStatus(failedResponse.status, bodyString)))
-    }).map(new KeystoneClient(baseUri, _))
+    }.map(new KeystoneClient(baseUri, _))
   }
 }

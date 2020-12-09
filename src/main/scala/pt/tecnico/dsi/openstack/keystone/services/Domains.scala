@@ -78,14 +78,14 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
     */
   def delete(id: String, force: Boolean = false): F[Unit] = {
     import dsl._
-    DELETE(uri / id, authToken).flatMap(client.run(_).use {
+    client.run(DELETE(uri / id, authToken)).use {
       case Successful(_) | NotFound(_) | Gone(_) => F.pure(())
       case Forbidden(_) if force =>
         // If you try to delete an enabled domain you'll get a Forbidden.
         // If force is set we try again. If that fails then the request is probably really forbidden.
         disable(id) >> super.delete(id)
       case request => super.defaultOnError(request)
-    })
+    }
   }
   
   /** Allows performing role assignment operations on the domain with `id` */

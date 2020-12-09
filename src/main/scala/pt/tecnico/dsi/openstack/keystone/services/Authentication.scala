@@ -8,10 +8,10 @@ import pt.tecnico.dsi.openstack.common.services.Service
 import pt.tecnico.dsi.openstack.keystone.models.Scope.System
 import pt.tecnico.dsi.openstack.keystone.models.{CatalogEntry, Domain, Project, Session}
 
-final class Authentication[F[_]: Sync: Client](baseUri: Uri, session: Session) extends Service[F](session.authToken) {
+final class Authentication[F[_]: Sync: Client](baseUri: Uri, session: Session) extends Service[F](baseUri, "auth", session.authToken) {
   import dsl._
 
-  val uri: Uri = baseUri / "auth"
+  override val uri: Uri = baseUri / "auth"
 
   private def subjectToken(token: String): Header = Header("X-Subject-Token", token)
 

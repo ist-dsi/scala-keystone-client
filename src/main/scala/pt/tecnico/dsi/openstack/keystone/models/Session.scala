@@ -7,7 +7,7 @@ import cats.effect.Sync
 import io.circe.{Decoder, HCursor}
 import org.http4s.client.Client
 import org.http4s.{Header, Uri}
-import pt.tecnico.dsi.openstack.common.models.showOffsetDateTime
+import io.chrisdavenport.cats.time.offsetdatetimeInstances
 
 object Session {
   // Not implicit because otherwise the compiler interprets it as an implicit conversion

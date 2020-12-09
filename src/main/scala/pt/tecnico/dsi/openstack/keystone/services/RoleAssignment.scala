@@ -10,7 +10,7 @@ import pt.tecnico.dsi.openstack.keystone.models._
 // Dotty union types would make this file simpler
 
 class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope: Scope, session: Session)
-  extends Service[F](session.authToken) { self =>
+  extends Service[F](baseUri, "role_assignment", session.authToken) { self =>
   import dsl._
   
   val roleAssignmentsApiQuery: Query = scope match {
@@ -29,7 +29,7 @@ class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope:
    * }}}
    */
   def listAssignments(): F[List[Assignment]] =
-    self.list[Assignment]("role_assignments", (baseUri / "role_assignments").copy(query = roleAssignmentsApiQuery))
+    self.list[Assignment](pluralName, uri.copy(query = roleAssignmentsApiQuery))
   
   def rolesApiUri(subjectType: String, subjectId: String): Uri = {
     val baseWithScope = scope match {
