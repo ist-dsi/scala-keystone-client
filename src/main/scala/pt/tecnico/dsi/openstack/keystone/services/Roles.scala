@@ -10,6 +10,10 @@ import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models._
 
+/**
+ * The service class for roles.
+ * @define domainModel role
+ */
 final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Role, Role.Create, Role.Update](baseUri, "role", session.authToken)
   with UniqueWithinDomain[F, Role] {

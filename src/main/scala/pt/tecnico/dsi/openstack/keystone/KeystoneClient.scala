@@ -14,12 +14,13 @@ object KeystoneClient {
       .flatMap(baseUri => apply(baseUri).authenticateFromEnvironment(env))
   }
 
-  def apply[F[_]: Client: Sync](baseUri: Uri): UnauthenticatedKeystoneClient[F] = new UnauthenticatedKeystoneClient(baseUri)
+  def apply[F[_]: Client: Sync](baseUri: Uri): UnauthenticatedKeystoneClient[F] = {
+    val uri: Uri = if (baseUri.path.dropEndsWithSlash.toString.endsWith("v3")) baseUri else baseUri / "v3"
+    new UnauthenticatedKeystoneClient(uri)
+  }
 }
 
-class KeystoneClient[F[_]: Sync](val baseUri: Uri, val session: Session)(implicit client: Client[F]) {
-  val uri: Uri = if (baseUri.path.dropEndsWithSlash.toString.endsWith("v3")) baseUri else baseUri / "v3"
-  
+class KeystoneClient[F[_]: Sync] private[keystone] (val uri: Uri, val session: Session)(implicit client: Client[F]) {
   val authentication = new Authentication[F](uri, session)
   val domains = new Domains[F](uri, session)
   val groups = new Groups[F](uri, session)

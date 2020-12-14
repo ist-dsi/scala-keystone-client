@@ -1,18 +1,16 @@
 package pt.tecnico.dsi.openstack.keystone
 
 import cats.effect.Sync
-import cats.syntax.flatMap._
 import cats.syntax.functor._
 import io.circe.derivation.{deriveEncoder, renaming}
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder, Json, Printer}
+import io.circe.{Encoder, Json}
 import org.http4s.Method.POST
 import org.http4s.Status.Successful
 import org.http4s.client.Client
-import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s._
 import org.typelevel.ci.CIString
-import pt.tecnico.dsi.openstack.common.models.UnexpectedStatus
+import pt.tecnico.dsi.openstack.common.services.Service
 import pt.tecnico.dsi.openstack.keystone.UnauthenticatedKeystoneClient.Credential
 import pt.tecnico.dsi.openstack.keystone.models.{Scope, Session}
 
@@ -34,7 +32,7 @@ object UnauthenticatedKeystoneClient {
   }
   case class Credential(id: Option[String], name: Option[String], password: String, domain: Option[Scope.Domain])
 }
-class UnauthenticatedKeystoneClient[F[_]](baseUri: Uri)(implicit client: Client[F], F: Sync[F]) {
+class UnauthenticatedKeystoneClient[F[_]: Client: Sync](baseUri: Uri) extends Service[F](baseUri / "auth", "token", Header("dummy", "dummy")) {
   /** Authenticates an identity and generates a token. Uses the password authentication method. Authorization is unscoped. */
   def authenticateWithPassword(userId: String, password: String): F[KeystoneClient[F]] =
     authenticate(Left(Credential(userId, password)))
@@ -95,14 +93,10 @@ class UnauthenticatedKeystoneClient[F[_]](baseUri: Uri)(implicit client: Client[
     )
 
   private def authenticate(method: Either[Credential, String], scope: Option[Scope] = None): F[KeystoneClient[F]] = {
-    val dsl = new Http4sClientDsl[F] {}
     import dsl._
-    val jsonPrinter: Printer = Printer.noSpaces.copy(dropNullValues = true)
-    implicit def jsonEncoder[A: Encoder]: EntityEncoder[F, A] = circe.jsonEncoderWithPrinterOf(jsonPrinter)
-    implicit def jsonDecoder[A: Decoder]: EntityDecoder[F, A] = circe.accumulatingJsonOf
-  
-    val uri: Uri = if (baseUri.path.dropEndsWithSlash.toString.endsWith("v3")) baseUri else baseUri / "v3"
-    client.run(POST(authBody(method, scope), uri / "auth" / "tokens")).use[F, Session] {
+    
+    val request = POST(authBody(method, scope), uri)
+    client.run(request).use[F, Session] {
       case Successful(response) =>
         response.headers.get(CIString("X-Subject-Token")) match {
           case None => F.raiseError(new IllegalStateException("Could not get X-Subject-Token from authentication response."))
@@ -110,10 +104,7 @@ class UnauthenticatedKeystoneClient[F[_]](baseUri: Uri)(implicit client: Client[
             implicit val sessionDecoder: EntityDecoder[F, Session] = jsonDecoder(Session.decoder(Header("X-Auth-Token", token.value)))
             response.as[Session]
         }
-      case failedResponse =>
-        import cats.instances.string._
-        // https://github.com/http4s/http4s/issues/3707
-        failedResponse.bodyText.compile.foldMonoid.flatMap(bodyString => F.raiseError(UnexpectedStatus(failedResponse.status, bodyString)))
+      case failedResponse => defaultOnError(request, failedResponse)
     }.map(new KeystoneClient(baseUri, _))
   }
 }

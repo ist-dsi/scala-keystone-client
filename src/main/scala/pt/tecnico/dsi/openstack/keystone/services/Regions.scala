@@ -9,6 +9,10 @@ import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Region, Session}
 
+/**
+ * The service class for regions.
+ * @define domainModel region
+ */
 final class Regions[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Region, Region.Create, Region.Update](baseUri, "region", session.authToken) {
   

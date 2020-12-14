@@ -10,6 +10,10 @@ import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{Domain, KeystoneError, Scope, Session}
 
+/**
+ * The service class for domains.
+ * @define domainModel domain
+ */
 final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Domain, Domain.Create, Domain.Update](baseUri, "domain", session.authToken)
   with EnableDisableEndpoints[F, Domain] {
@@ -78,13 +82,14 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
     */
   def delete(id: String, force: Boolean = false): F[Unit] = {
     import dsl._
-    client.run(DELETE(uri / id, authToken)).use {
+    val request = DELETE(uri / id, authToken)
+    client.run(request).use {
       case Successful(_) | NotFound(_) | Gone(_) => F.pure(())
       case Forbidden(_) if force =>
         // If you try to delete an enabled domain you'll get a Forbidden.
         // If force is set we try again. If that fails then the request is probably really forbidden.
         disable(id) >> super.delete(id)
-      case request => super.defaultOnError(request)
+      case response => super.defaultOnError(request, response)
     }
   }
   
