@@ -25,7 +25,7 @@ object Service {
     description: Option[String] = None,
     enabled: Boolean = true,
   )
-
+  
   object Update {
     implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
     implicit val show: ShowPretty[Update] = derived.semiauto.showPretty

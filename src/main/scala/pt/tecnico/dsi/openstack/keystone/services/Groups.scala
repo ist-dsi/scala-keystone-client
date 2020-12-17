@@ -16,7 +16,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{Group, KeystoneError, Session, 
  */
 final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Group, Group.Create, Group.Update](baseUri, "group", session.authToken)
-  with UniqueWithinDomain[F, Group] {
+    with UniqueWithinDomain[F, Group] {
   
   /**
     * @param name filters the response by a group name.

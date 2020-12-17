@@ -16,7 +16,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{Domain, KeystoneError, Scope, S
  */
 final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Domain, Domain.Create, Domain.Update](baseUri, "domain", session.authToken)
-  with EnableDisableEndpoints[F, Domain] {
+    with EnableDisableEndpoints[F, Domain] {
   
   /**
     * @param name filters the response by a domain name.
@@ -45,7 +45,7 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
       case Some(domain) => F.pure(domain)
       case None => F.raiseError(new NoSuchElementException(s"""Could not find domain named "$name""""))
     }
-
+  
   override def defaultResolveConflict(existing: Domain, create: Domain.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Domain] = {
     val updated = Domain.Update(
       description = Option(create.description).filter(_ != existing.description),

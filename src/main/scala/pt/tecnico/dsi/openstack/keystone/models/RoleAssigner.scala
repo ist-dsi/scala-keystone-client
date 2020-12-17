@@ -4,7 +4,7 @@ import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
 
 /**
- * @define scope
+ * @define scope scope
  */
 trait RoleAssigner {
   /** The role assignment for $scope */
@@ -45,7 +45,7 @@ trait RoleAssigner {
    * }}}
    */
   def listAssignmentsFor[F[_]: KeystoneClient](group: Group): F[List[Role]] = listAssignmentsForGroup(group.id)
-
+  
   /**
    * Allows assigning the role with `roleId` to user/group on $scope.
    * @example

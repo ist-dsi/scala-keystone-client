@@ -5,11 +5,12 @@ import cats.derived.ShowPretty
 import cats.effect.{IO, Resource}
 import cats.implicits._
 import org.http4s.Query
-import org.scalatest.{Assertion, EitherValues}
+import org.scalatest.{Assertion, EitherValues, OptionValues}
 import pt.tecnico.dsi.openstack.common.models.Identifiable
 import pt.tecnico.dsi.openstack.common.services.CrudService
 
-abstract class CrudSpec[Model <: Identifiable: ShowPretty, Create, Update](val name: String) extends Utils with EitherValues {
+abstract class CrudSpec[Model <: Identifiable: ShowPretty, Create, Update](val name: String)
+  extends Utils with EitherValues with OptionValues {
   def service: CrudService[IO, Model, Create, Update]
 
   def createStub(name: String): Create

@@ -60,7 +60,7 @@ object Domain {
   implicit val show: ShowPretty[Domain] = derived.semiauto.showPretty
 }
 /**
- * @define context domain
+ * @define scope domain
  */
 final case class Domain(
   id: String,

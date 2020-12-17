@@ -50,7 +50,7 @@ object Project {
     if (isDomain && domainId.isDefined) throw new IllegalArgumentException("For projects acting as a domain, the `domainId` must not be specified.")
     if (isDomain && parentId.isDefined) throw new IllegalArgumentException("For projects acting as a domain, the `parentId` must not be specified.")
   }
-
+  
   object Update {
     implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
     implicit val show: ShowPretty[Update] = derived.semiauto.showPretty
@@ -80,7 +80,7 @@ object Project {
   implicit val show: ShowPretty[Project] = derived.semiauto.showPretty
 }
 /**
- * @define context project
+ * @define scope project
  */
 final case class Project(
   id: String,

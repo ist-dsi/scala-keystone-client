@@ -16,9 +16,9 @@ import pt.tecnico.dsi.openstack.keystone.models.{Group, KeystoneError, Project, 
  */
 final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, User, User.Create, User.Update](baseUri, "user", session.authToken)
-  with UniqueWithinDomain[F, User]
-  with EnableDisableEndpoints[F, User] {
-
+    with UniqueWithinDomain[F, User]
+    with EnableDisableEndpoints[F, User] {
+  
   /**
     *
     * @param name filters the response by a user name.
@@ -41,7 +41,7 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session)
       "protocol_id" -> protocolId,
       "unique_id" -> uniqueId,
     ))
-
+  
   override def defaultResolveConflict(existing: User, create: User.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[User] = {
     // TODO: should we always update because of the password? We could try to authenticate with the user to check if the password is valid
     if (existing.defaultProjectId != create.defaultProjectId || existing.enabled != create.enabled) {

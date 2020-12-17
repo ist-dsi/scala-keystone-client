@@ -46,7 +46,7 @@ class UnauthenticatedKeystoneClient[F[_]: Client: Sync](baseUri: Uri) extends Se
   /** Authenticates an identity and generates a token. Uses the password authentication method and scopes authorization to `scope`. */
   def authenticateWithPassword(username: String, password: String, domain: Scope.Domain, scope: Scope): F[KeystoneClient[F]] =
     authenticate(Left(Credential(username, password, domain)), Some(scope))
-
+  
   /**
     * Authenticates an identity and generates a token. Uses the token authentication method. Authorization is unscoped.
     * @param token the token to use for authentication.
@@ -58,14 +58,12 @@ class UnauthenticatedKeystoneClient[F[_]: Client: Sync](baseUri: Uri) extends Se
     * @param scope the scope to which the authorization will be scoped to.
     */
   def authenticateWithToken(token: String, scope: Scope): F[KeystoneClient[F]] = authenticate(Right(token), Some(scope))
-
-  //TODO: Authenticating with an Application Credential
-
+  
   def authenticateFromEnvironment(env: Map[String, String]): F[KeystoneClient[F]] = {
     lazy val tokenOpt = env.get("OS_TOKEN").filter(_.nonEmpty)
     lazy val computedAuthType = tokenOpt.map(_ => "token").getOrElse("password")
     val scopeOpt = Scope.fromEnvironment(env)
-
+    
     env.getOrElse("OS_AUTH_TYPE", computedAuthType).toLowerCase match {
       case "token" | "v3token" => tokenOpt match {
         case Some(token) => authenticate(Right(token), scopeOpt)
@@ -78,7 +76,7 @@ class UnauthenticatedKeystoneClient[F[_]: Client: Sync](baseUri: Uri) extends Se
       case m => F.raiseError(new Throwable(s"This library does not support authentication using $m"))
     }
   }
-
+  
   private def authBody(method: Either[Credential, String], scope: Option[Scope]): Json =
     Json.obj(
       "auth" -> Json.fromFields(Seq(
@@ -91,10 +89,9 @@ class UnauthenticatedKeystoneClient[F[_]: Client: Sync](baseUri: Uri) extends Se
         )
       ) ++ scope.map(s => "scope" -> s.asJson))
     )
-
+  
   private def authenticate(method: Either[Credential, String], scope: Option[Scope] = None): F[KeystoneClient[F]] = {
     import dsl._
-    
     val request = POST(authBody(method, scope), uri)
     client.run(request).use[F, Session] {
       case Successful(response) =>

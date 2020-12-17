@@ -59,7 +59,7 @@ final case class Group(
   links: List[Link] = List.empty,
 ) extends Identifiable { self =>
   def domain[F[_]](implicit client: KeystoneClient[F]): F[Domain] = client.domains(domainId)
-
+  
   def users[F[_]: Sync](implicit client: KeystoneClient[F]): F[List[User]] = client.groups.listUsers(self.id)
   def addUser[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.addUser(self.id, id)
   def addUsers[F[_]: Sync](ids: List[String])(implicit client: KeystoneClient[F]): F[Unit] = ids.traverse_(client.groups.addUser(self.id, _))

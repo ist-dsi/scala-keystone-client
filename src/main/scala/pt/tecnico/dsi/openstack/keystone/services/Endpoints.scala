@@ -11,7 +11,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{Endpoint, Interface, KeystoneEr
 
 final class Endpoints[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Endpoint, Endpoint.Create, Endpoint.Update](baseUri, "endpoint", session.authToken)
-  with EnableDisableEndpoints[F, Endpoint] {
+    with EnableDisableEndpoints[F, Endpoint] {
   
   /**
     * @param interface filters the response by an interface.

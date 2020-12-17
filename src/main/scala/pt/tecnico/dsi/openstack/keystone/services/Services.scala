@@ -15,7 +15,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Service, Session
  */
 final class Services[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Service, Service.Create, Service.Update](baseUri, "service", session.authToken)
-  with EnableDisableEndpoints[F, Service] {
+    with EnableDisableEndpoints[F, Service] {
   
   /**
     * @param name Filters the response by a service name.

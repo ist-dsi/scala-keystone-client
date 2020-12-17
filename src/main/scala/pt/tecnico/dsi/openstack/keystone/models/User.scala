@@ -93,14 +93,14 @@ final case class User(
   links: List[Link] = List.empty,
 ) extends Identifiable { self =>
   def domain[F[_]](implicit client: KeystoneClient[F]): F[Domain] = client.domains(domainId)
-
+  
   /** The groups to which the user belongs */
   def groups[F[_]: Sync](implicit client: KeystoneClient[F]): F[List[Group]] = client.users.listGroups(self.id)
   /** The projects to which the user belongs */
   def projects[F[_]: Sync](implicit client: KeystoneClient[F]): F[List[Project]] = client.users.listProjects(self.id)
   def changePassword[F[_]: Sync](originalPassword: String, password: String)(implicit client: KeystoneClient[F]): F[Unit] =
     client.users.changePassword(self.id, originalPassword, password)
-
+  
   def addToGroup[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.addUser(id, self.id)
   def removeFromGroup[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.removeUser(id, self.id)
   def isInGroup[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Boolean] = client.groups.isUserInGroup(id, self.id)

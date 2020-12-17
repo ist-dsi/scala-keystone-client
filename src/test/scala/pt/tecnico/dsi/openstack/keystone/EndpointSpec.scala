@@ -10,7 +10,7 @@ class EndpointSpec extends CrudSpec[Endpoint, Endpoint.Create, Endpoint.Update](
   override def service: Endpoints[IO] = keystone.endpoints
 
   val stubsResource: Resource[IO, (String, String)] = for {
-    region <- resourceCreator(keystone.regions)(name => Region.Create(name))
+    region <- resourceCreator(keystone.regions)(Region.Create(_))
     service <- resourceCreator(keystone.services)(Service.Create(_, "random-type"))
   } yield (service.id, region.id)
 
