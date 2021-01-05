@@ -10,10 +10,14 @@ import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models._
 
+/**
+ * The service class for roles.
+ * @define domainModel role
+ */
 final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Role, Role.Create, Role.Update](baseUri, "role", session.authToken)
-  with UniqueWithinDomain[F, Role] {
-
+    with UniqueWithinDomain[F, Role] {
+  
   /**
     * @param name filters the response by a role name.
     * @param domainId filters the response by a domain ID.
@@ -21,7 +25,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
     */
   def list(name: Option[String] = None, domainId: Option[String] = None): F[List[Role]] =
     list(Query("name" -> name, "domain_id" -> domainId))
-
+  
   override def defaultResolveConflict(existing: Role, create: Role.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Role] = {
     val updated = Role.Update(
       description = if (create.description != existing.description) create.description else None,
@@ -68,7 +72,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
   /** Allows performing role assignment operations on `domain`. */
   def on(domain: Domain): RoleAssignment[F] = onDomain(domain.id)
   /** Allows performing role assignment operations on `project`. */
-  def on(project: Project): RoleAssignment[F] = onDomain(project.id)
+  def on(project: Project): RoleAssignment[F] = onProject(project.id)
   /** Allows performing role assignment operations on system. */
   def on(@nowarn system: System.type): RoleAssignment[F] = new RoleAssignment(baseUri, Scope.System(), session)
   

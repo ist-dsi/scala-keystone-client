@@ -10,11 +10,15 @@ import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Project, Scope, Session}
 
+/**
+ * The service class for projects.
+ * @define domainModel project
+ */
 final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Project, Project.Create, Project.Update](baseUri, "project", session.authToken)
-  with UniqueWithinDomain[F, Project]
-  with EnableDisableEndpoints[F, Project] {
-
+    with UniqueWithinDomain[F, Project]
+    with EnableDisableEndpoints[F, Project] {
+  
   /**
     * @param name filters the response by a project name.
     * @param domainId filters the response by a domain ID.

@@ -45,7 +45,7 @@ trait RoleAssigner {
    * }}}
    */
   def listAssignmentsFor[F[_]: KeystoneClient](group: Group): F[List[Role]] = listAssignmentsForGroup(group.id)
-
+  
   /**
    * Allows assigning the role with `roleId` to user/group on $scope.
    * @example

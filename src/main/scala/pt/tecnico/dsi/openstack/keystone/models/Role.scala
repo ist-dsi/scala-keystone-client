@@ -23,7 +23,7 @@ object Role {
     description: Option[String] = None,
     domainId: Option[String] = None,
   )
-
+  
   object Update {
     implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
     implicit val show: ShowPretty[Update] = derived.semiauto.showPretty

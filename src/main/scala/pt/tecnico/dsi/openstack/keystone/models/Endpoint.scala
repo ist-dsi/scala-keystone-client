@@ -30,7 +30,7 @@ object Endpoint {
     regionId: String,
     enabled: Boolean = true,
   )
-
+  
   object Update {
     implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
     implicit val show: ShowPretty[Update] = derived.semiauto.showPretty

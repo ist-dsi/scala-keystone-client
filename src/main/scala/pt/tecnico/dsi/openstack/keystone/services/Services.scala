@@ -9,9 +9,13 @@ import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Service, Session}
 
+/**
+ * The service class for services.
+ * @define domainModel service
+ */
 final class Services[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Service, Service.Create, Service.Update](baseUri, "service", session.authToken)
-  with EnableDisableEndpoints[F, Service] {
+    with EnableDisableEndpoints[F, Service] {
   
   /**
     * @param name Filters the response by a service name.

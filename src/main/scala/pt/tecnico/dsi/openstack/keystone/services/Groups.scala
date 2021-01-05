@@ -10,9 +10,13 @@ import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{Group, KeystoneError, Session, User}
 
+/**
+ * The service class for groups.
+ * @define domainModel group
+ */
 final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Group, Group.Create, Group.Update](baseUri, "group", session.authToken)
-  with UniqueWithinDomain[F, Group] {
+    with UniqueWithinDomain[F, Group] {
   
   /**
     * @param name filters the response by a group name.

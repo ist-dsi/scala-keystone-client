@@ -11,12 +11,12 @@ trait UniqueWithinDomain[F[_], T <: Identifiable] { this: CrudService[F, T, _, _
     * @param name the name to search for.
     */
   def listByName(name: String): F[List[T]] = list("name" -> name)
-
+  
   /** Lists `T`s in the given domain.
     * @param domainId the domain id of the domain.
     */
   def listByDomain(domainId: String): F[List[T]] = list("domain_id" -> domainId)
-
+  
   /**
    * Get detailed information about the `T` specified by name and domainId.
    *

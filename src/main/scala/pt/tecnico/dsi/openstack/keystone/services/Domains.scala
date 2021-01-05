@@ -10,9 +10,13 @@ import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{Domain, KeystoneError, Scope, Session}
 
+/**
+ * The service class for domains.
+ * @define domainModel domain
+ */
 final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Domain, Domain.Create, Domain.Update](baseUri, "domain", session.authToken)
-  with EnableDisableEndpoints[F, Domain] {
+    with EnableDisableEndpoints[F, Domain] {
   
   /**
     * @param name filters the response by a domain name.
@@ -41,7 +45,7 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
       case Some(domain) => F.pure(domain)
       case None => F.raiseError(new NoSuchElementException(s"""Could not find domain named "$name""""))
     }
-
+  
   override def defaultResolveConflict(existing: Domain, create: Domain.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Domain] = {
     val updated = Domain.Update(
       description = Option(create.description).filter(_ != existing.description),
@@ -78,13 +82,14 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
     */
   def delete(id: String, force: Boolean = false): F[Unit] = {
     import dsl._
-    client.run(DELETE(uri / id, authToken)).use {
+    val request = DELETE(uri / id, authToken)
+    client.run(request).use {
       case Successful(_) | NotFound(_) | Gone(_) => F.pure(())
       case Forbidden(_) if force =>
         // If you try to delete an enabled domain you'll get a Forbidden.
         // If force is set we try again. If that fails then the request is probably really forbidden.
         disable(id) >> super.delete(id)
-      case request => super.defaultOnError(request)
+      case response => super.defaultOnError(request, response)
     }
   }
   

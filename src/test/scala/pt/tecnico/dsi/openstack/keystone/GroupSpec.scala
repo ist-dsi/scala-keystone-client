@@ -7,7 +7,7 @@ import pt.tecnico.dsi.openstack.keystone.services.Groups
 
 class GroupSpec extends CrudSpec[Group, Group.Create, Group.Update]("group") {
   override def service: Groups[IO] = keystone.groups
-
+  
   override def createStub(name: String): Group.Create = Group.Create(name, "a description")
   override def compareCreate(create: Group.Create, model: Group): Assertion = {
     model.name shouldBe create.name
@@ -16,7 +16,7 @@ class GroupSpec extends CrudSpec[Group, Group.Create, Group.Update]("group") {
     // the group will be created with domainId = default
     model.domainId shouldBe keystone.session.scopedDomainId()
   }
-
+  
   override def updateStub: Group.Update = Group.Update(name = Some(randomName()), Some("a better and improved description"))
   override def compareUpdate(update: Group.Update, model: Group): Assertion = {
     model.name shouldBe update.name.value

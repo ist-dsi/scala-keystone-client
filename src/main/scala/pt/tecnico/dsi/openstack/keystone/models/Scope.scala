@@ -12,7 +12,7 @@ case object Scope extends Enum[Scope] {
   object Project {
     def apply(id: String): Project = new Project(id, null, null)
     def apply(name: String, domain: Domain): Project = new Project(null, name, domain)
-
+    
     def fromEnvironment(env: Map[String, String]): Option[Project] = {
       val idOpt = env.get("OS_PROJECT_ID").map(id => Project(id))
       val nameOpt = env.get("OS_PROJECT_NAME").zip(Domain.fromEnvironment(env, "OS_PROJECT"))
@@ -44,7 +44,7 @@ case object Scope extends Enum[Scope] {
         case _ => None
       }
     }
-  
+    
     implicit val encoder: Encoder[Domain] = (domain: Domain) => Json.obj(
       "id" -> Option(domain.id).asJson,
       "name" -> Option(domain.name).asJson
@@ -66,7 +66,7 @@ case object Scope extends Enum[Scope] {
     // Unscoped represents the absence of a scope, so its impossible to implement a decoder for it
     implicit val showUnscoped: Show[Unscoped.type] = Show.fromToString
   }
-
+  
   def fromEnvironment(env: Map[String, String]): Option[Scope] = {
     val projectOpt = Project.fromEnvironment(env)
     val domainOpt = Domain.fromEnvironment(env)
