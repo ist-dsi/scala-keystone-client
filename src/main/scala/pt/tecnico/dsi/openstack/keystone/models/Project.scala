@@ -80,7 +80,7 @@ object Project {
   implicit val show: ShowPretty[Project] = derived.semiauto.showPretty
 }
 /**
- * @define context project
+ * @define scope project
  */
 final case class Project(
   id: String,

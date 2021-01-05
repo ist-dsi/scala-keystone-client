@@ -4,7 +4,7 @@ import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
 
 /**
- * @define scope
+ * @define scope scope
  */
 trait RoleAssigner {
   /** The role assignment for $scope */
