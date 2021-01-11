@@ -63,10 +63,12 @@ object KeystoneClient {
     authenticate(baseUri, Right(token), Some(scope))
   
   /** Authenticates using the environment variables. */
-  def authenticateFromEnvironment[F[_]: Client](env: Map[String, String] = sys.env)(implicit F: Sync[F]): F[KeystoneClient[F]] = {
+  def authenticateFromEnvironment[F[_]: Client: Sync](env: Map[String, String] = sys.env): F[KeystoneClient[F]] = {
     lazy val tokenOpt = env.get("OS_TOKEN").filter(_.nonEmpty)
     lazy val computedAuthType = tokenOpt.map(_ => "token").getOrElse("password")
     val scopeOpt = Scope.fromEnvironment(env)
+    
+    def error[A](message: String): F[A] = Sync[F].raiseError(new Throwable(message))
     
     for {
       authUrl <- Sync[F].fromOption(env.get("OS_AUTH_URL"), new Throwable(s"Could not get OS_AUTH_URL from the environment"))
@@ -74,13 +76,13 @@ object KeystoneClient {
       client <- env.getOrElse("OS_AUTH_TYPE", computedAuthType).toLowerCase match {
         case "token" | "v3token" => tokenOpt match {
           case Some(token) => authenticate(baseUri, Right(token), scopeOpt)
-          case None => F.raiseError(new Throwable("To authenticate using the token method a token must be set in OS_TOKEN!"))
+          case None => error("To authenticate using the token method a token must be set in OS_TOKEN!")
         }
         case "password" | "v3password" => Credential.fromEnvironment(env) match {
           case Some(credential) => authenticate(baseUri, Left(credential), scopeOpt)
-          case None => F.raiseError(new Throwable("To authenticate using the password method a credential must be set in OS_USER_ID/OS_USERNAME and OS_PASSWORD!"))
+          case None => error("To authenticate using the password method a credential must be set in OS_USER_ID/OS_USERNAME and OS_PASSWORD!")
         }
-        case m => F.raiseError(new Throwable(s"This library does not support authentication using $m"))
+        case m => error(s"This library does not support authentication using $m")
       }
     } yield client
   }
