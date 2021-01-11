@@ -50,13 +50,13 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   implicit val httpClient: Client[IO] = _httpClient
   
   // This way we only authenticate to Openstack once, and make the logs smaller and easier to debug.
-  val keystone: KeystoneClient[IO] = KeystoneClient.fromEnvironment {
+  val keystone: KeystoneClient[IO] = KeystoneClient.authenticateFromEnvironment {
     import scala.sys.process._
     val ignoreStdErr = ProcessLogger(_ => ())
     val openstackEnvVariableRegex = """(?<=\+\+ )(OS_[A-Z_]+)=([^\n]+)""".r.unanchored
     "docker logs dev-keystone".lazyLines(ignoreStdErr).collect {
       case openstackEnvVariableRegex(key, value) => key -> value
-    }.toMap
+    }.toMap + ("OS_AUTH_URL" -> "http://127.0.0.1:5000") // The docker logs do not expose this variable correctly
   }.unsafeRunSync()
   
   // Not very purely functional :(
