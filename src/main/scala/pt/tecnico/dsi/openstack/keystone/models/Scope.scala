@@ -25,7 +25,11 @@ case object Scope extends Enum[Scope] {
       "name" -> Option(project.name).asJson,
       "domain" -> Option(project.domain).asJson
     ).dropNullValues
-    implicit val decoder: Decoder[Project] = deriveDecoder[Project]
+    implicit val decoder: Decoder[Project] = (cursor: HCursor) => for {
+      id <- cursor.get[Option[String]]("id")
+      name <- cursor.get[Option[String]]("name")
+      domain <- cursor.get[Option[Domain]]("domain")
+    } yield Project(id.orNull, name.orNull, domain.orNull)
     implicit val show: ShowPretty[Project] = derived.semiauto.showPretty
   }
   case class Project(id: String, name: String, domain: Domain) extends Scope
@@ -49,7 +53,10 @@ case object Scope extends Enum[Scope] {
       "id" -> Option(domain.id).asJson,
       "name" -> Option(domain.name).asJson
     ).dropNullValues
-    implicit val decoder: Decoder[Domain] = deriveDecoder[Domain]
+    implicit val decoder: Decoder[Domain] = (cursor: HCursor) => for {
+      id <- cursor.get[Option[String]]("id")
+      name<- cursor.get[Option[String]]("name")
+    } yield Domain(id.orNull, name.orNull)
     implicit val show: ShowPretty[Domain] = derived.semiauto.showPretty
   }
   case class Domain(id: String, name: String) extends Scope
