@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import cats.syntax.flatMap._
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
@@ -13,7 +13,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Service, Session
  * The service class for services.
  * @define domainModel service
  */
-final class Services[F[_]: Sync: Client](baseUri: Uri, session: Session)
+final class Services[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Service, Service.Create, Service.Update](baseUri, "service", session.authToken)
     with EnableDisableEndpoints[F, Service] {
   
@@ -30,7 +30,7 @@ final class Services[F[_]: Sync: Client](baseUri: Uri, session: Session)
       enabled = Option(create.enabled).filter(_ != existing.enabled),
     )
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
-    else Sync[F].pure(existing)
+    else Concurrent[F].pure(existing)
   }
   override def createOrUpdate(create: Service.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
     (resolveConflict: (Service, Service.Create) => F[Service] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Service] = {
@@ -42,7 +42,7 @@ final class Services[F[_]: Sync: Client](baseUri: Uri, session: Session)
         resolveConflict(existing, create)
       case _ =>
         val message = s"Cannot create a service idempotently because more than one service with name: ${create.name} and type: ${create.`type`} exists."
-        Sync[F].raiseError(KeystoneError(message, Conflict.code, Conflict.reason))
+        Concurrent[F].raiseError(KeystoneError(message, Conflict.code, Conflict.reason))
     }
   }
   

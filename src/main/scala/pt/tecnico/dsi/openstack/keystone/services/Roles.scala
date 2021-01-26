@@ -1,7 +1,7 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
 import scala.annotation.nowarn
-import cats.effect.Sync
+import cats.effect.Concurrent
 import cats.syntax.flatMap._
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
@@ -14,7 +14,7 @@ import pt.tecnico.dsi.openstack.keystone.models._
  * The service class for roles.
  * @define domainModel role
  */
-final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
+final class Roles[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Role, Role.Create, Role.Update](baseUri, "role", session.authToken)
     with UniqueWithinDomain[F, Role] {
   
@@ -31,7 +31,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
       description = if (create.description != existing.description) create.description else None,
     )
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
-    else Sync[F].pure(existing)
+    else Concurrent[F].pure(existing)
   }
   override def createOrUpdate(create: Role.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
     (resolveConflict: (Role, Role.Create) => F[Role] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Role] = {
@@ -54,7 +54,7 @@ final class Roles[F[_]: Sync: Client](baseUri: Uri, session: Session)
                   resolveConflict(existing, create)
                 case _ =>
                   // There is more than one role with name `create.name`. We do not have enough information to disambiguate between them.
-                  Sync[F].raiseError(error)
+                  Concurrent[F].raiseError(error)
               }
             }
         }

@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import cats.syntax.flatMap._
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
@@ -9,7 +9,7 @@ import org.log4s.getLogger
 import pt.tecnico.dsi.openstack.common.services.CrudService
 import pt.tecnico.dsi.openstack.keystone.models.{Endpoint, Interface, KeystoneError, Session}
 
-final class Endpoints[F[_]: Sync: Client](baseUri: Uri, session: Session)
+final class Endpoints[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Endpoint, Endpoint.Create, Endpoint.Update](baseUri, "endpoint", session.authToken)
     with EnableDisableEndpoints[F, Endpoint] {
   
@@ -31,7 +31,7 @@ final class Endpoints[F[_]: Sync: Client](baseUri: Uri, session: Session)
       enabled = Option(create.enabled).filter(_ != existing.enabled),
     )
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
-    else Sync[F].pure(existing)
+    else Concurrent[F].pure(existing)
   }
   override def createOrUpdate(create: Endpoint.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
     (resolveConflict: (Endpoint, Endpoint.Create) => F[Endpoint] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Endpoint] = {
@@ -46,7 +46,7 @@ final class Endpoints[F[_]: Sync: Client](baseUri: Uri, session: Session)
                          |Interface: ${create.interface}
                          |ServiceId: ${create.serviceId}
                          |RegionId ${create.regionId}""".stripMargin
-        Sync[F].raiseError(KeystoneError(message, Conflict.code, Conflict.reason))
+        Concurrent[F].raiseError(KeystoneError(message, Conflict.code, Conflict.reason))
     }
   }
   

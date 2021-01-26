@@ -1,5 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone
 
+import cats.effect.unsafe.implicits.global // I'm sure there is a better way to do this. Please do not copy paste
 import cats.effect.{IO, Resource}
 import org.http4s.Query
 import org.scalatest.Assertion

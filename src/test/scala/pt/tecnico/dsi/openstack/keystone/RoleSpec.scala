@@ -35,11 +35,11 @@ class RoleSpec extends CrudSpec[Role, Role.Create, Role.Update]("role") {
   }
 
   s"The $name service" should {
-    s"list ${name}s in a domain" in roleWithDomainResource.use[IO, Assertion] { role =>
+    s"list ${name}s in a domain" in roleWithDomainResource.use { role =>
       keystone.roles.listByDomain(role.domainId.get).idempotently(_ should contain(role))
     }
 
-    s"get ${name}s in a domain" in roleWithDomainResource.use[IO, Assertion] { role =>
+    s"get ${name}s in a domain" in roleWithDomainResource.use { role =>
       keystone.roles.apply(role.name, role.domainId.get).idempotently(_ shouldBe role)
     }
   }

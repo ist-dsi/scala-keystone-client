@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import cats.syntax.flatMap._
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
@@ -13,7 +13,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Region, Session}
  * The service class for regions.
  * @define domainModel region
  */
-final class Regions[F[_]: Sync: Client](baseUri: Uri, session: Session)
+final class Regions[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Region, Region.Create, Region.Update](baseUri, "region", session.authToken) {
   
   /**
@@ -28,7 +28,7 @@ final class Regions[F[_]: Sync: Client](baseUri: Uri, session: Session)
       if (create.parentRegionId != existing.parentRegionId) create.parentRegionId else None,
     )
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
-    else Sync[F].pure(existing)
+    else Concurrent[F].pure(existing)
   }
   override def createOrUpdate(create: Region.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
     (resolveConflict: (Region, Region.Create) => F[Region] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Region] = {

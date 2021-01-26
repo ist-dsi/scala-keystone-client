@@ -1,10 +1,10 @@
 package pt.tecnico.dsi.openstack.keystone
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import cats.effect.unsafe.implicits.global // I'm sure there is a better way to do this. Please do not copy paste
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.Future
 import scala.util.Random
-import cats.effect.{ContextShift, IO, Resource, Timer}
+import cats.effect.{IO, Resource}
 import cats.implicits._
 import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
@@ -16,12 +16,7 @@ import pt.tecnico.dsi.openstack.common.models.Identifiable
 import pt.tecnico.dsi.openstack.common.services.CrudService
 
 abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
-  implicit override def executionContext: ExecutionContextExecutor = ExecutionContext.global
-  
-  implicit val timer: Timer[IO] = IO.timer(executionContext)
-  implicit val cs: ContextShift[IO] = IO.contextShift(executionContext)
-  
-  val (_httpClient, finalizer) = BlazeClientBuilder[IO](global)
+  val (_httpClient, finalizer) = BlazeClientBuilder[IO](global.compute)
     .withResponseHeaderTimeout(5.seconds)
     .withCheckEndpointAuthentication(false)
     .resource.allocated.unsafeRunSync()

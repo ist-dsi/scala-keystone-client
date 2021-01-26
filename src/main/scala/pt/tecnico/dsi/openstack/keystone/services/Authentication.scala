@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import org.http4s.Method.{DELETE, GET, HEAD}
 import org.http4s.client.Client
 import org.http4s.{Header, Uri}
@@ -8,7 +8,7 @@ import pt.tecnico.dsi.openstack.common.services.Service
 import pt.tecnico.dsi.openstack.keystone.models.Scope.System
 import pt.tecnico.dsi.openstack.keystone.models.{CatalogEntry, Domain, Project, Session}
 
-final class Authentication[F[_]: Sync: Client](baseUri: Uri, session: Session) extends Service[F](baseUri, "auth", session.authToken) {
+final class Authentication[F[_]: Concurrent: Client](baseUri: Uri, session: Session) extends Service[F](baseUri, "auth", session.authToken) {
   import dsl._
   
   override val uri: Uri = baseUri / "auth"

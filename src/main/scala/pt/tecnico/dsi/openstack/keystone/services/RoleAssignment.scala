@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import org.http4s.Method.{HEAD, PUT}
 import org.http4s.client.Client
 import org.http4s.{Query, Uri}
@@ -9,7 +9,7 @@ import pt.tecnico.dsi.openstack.keystone.models._
 
 // Dotty union types would make this file simpler
 
-class RoleAssignment[F[_]: Sync: Client] private[services] (baseUri: Uri, scope: Scope, session: Session)
+class RoleAssignment[F[_]: Concurrent: Client] private[services] (baseUri: Uri, scope: Scope, session: Session)
   extends Service[F](baseUri, "role_assignment", session.authToken) { self =>
   import dsl._
   

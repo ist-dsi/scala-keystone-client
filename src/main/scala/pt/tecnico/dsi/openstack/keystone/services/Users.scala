@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import cats.syntax.flatMap._
 import io.circe.syntax._
 import org.http4s.Status.Conflict
@@ -14,7 +14,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{Group, KeystoneError, Project, 
  * The service class for users.
  * @define domainModel user
  */
-final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session)
+final class Users[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
   extends CrudService[F, User, User.Create, User.Update](baseUri, "user", session.authToken)
     with UniqueWithinDomain[F, User]
     with EnableDisableEndpoints[F, User] {
@@ -52,7 +52,7 @@ final class Users[F[_]: Sync: Client](baseUri: Uri, session: Session)
       )
       update(existing.id, updated, extraHeaders:_*)
     } else {
-      Sync[F].pure(existing)
+      Concurrent[F].pure(existing)
     }
   }
   override def createOrUpdate(create: User.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)

@@ -1,7 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone
 
 import cats.effect.{IO, Resource}
-import org.scalatest.Assertion
 import pt.tecnico.dsi.openstack.common.models.Identifiable
 import pt.tecnico.dsi.openstack.keystone.models.{Group, Role, User}
 import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
@@ -27,13 +26,13 @@ trait RoleAssignmentSpec[T <: Identifiable] { this: CrudSpec[T, _, _] =>
   }
   
   s"The $name service should handle role assignment" should {
-    "list assigned roles" in withStubs.use[IO, Assertion] { case (roleService, user, group, role) =>
+    "list assigned roles" in withStubs.use { case (roleService, user, group, role) =>
       for {
         _ <- roleService.listAssignmentsFor(user).idempotently(_.forall(_.id == role.id) shouldBe true)
         result <- roleService.listAssignmentsFor(group).idempotently(_.forall(_.id == role.id) shouldBe true)
       } yield result
     }
-    "assign roles" in withStubs.use[IO, Assertion] { case (roleService, user, group, role) =>
+    "assign roles" in withStubs.use { case (roleService, user, group, role) =>
       for {
         _ <- (roleService assign role to user).idempotently(_ shouldBe ())
         _ <- (roleService assign role to group).idempotently(_ shouldBe ())
@@ -44,7 +43,7 @@ trait RoleAssignmentSpec[T <: Identifiable] { this: CrudSpec[T, _, _] =>
         checkGroup shouldBe true
       }
     }
-    "delete role assignments" in withStubs.use[IO, Assertion] { case (roleService, user, group, role) =>
+    "delete role assignments" in withStubs.use { case (roleService, user, group, role) =>
       for {
         _ <- (roleService unassign role from user).idempotently(_ shouldBe ())
         _ <- (roleService unassign role from group).idempotently(_ shouldBe ())
@@ -55,7 +54,7 @@ trait RoleAssignmentSpec[T <: Identifiable] { this: CrudSpec[T, _, _] =>
         checkGroup shouldBe false
       }
     }
-    "check role assignments" in withStubs.use[IO, Assertion] { case (roleService, user, group, role) =>
+    "check role assignments" in withStubs.use { case (roleService, user, group, role) =>
       for {
         firstCheckUser <- (roleService is role assignedTo user).idempotently(_ shouldBe true)
         firstCheckGroup <- (roleService is role assignedTo group).idempotently(_ shouldBe true)

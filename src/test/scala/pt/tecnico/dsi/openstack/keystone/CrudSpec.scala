@@ -27,7 +27,7 @@ abstract class CrudSpec[Model <: Identifiable: ShowPretty, Create, Update](val n
   def resource: Resource[IO, Model] = resourceCreator(service)(createStub)
   
   s"The $name service" should {
-    s"list ${name}s" in resource.use[IO, Assertion] { model =>
+    s"list ${name}s" in resource.use { model =>
       service.list().idempotently(_ should contain (model))
     }
     
@@ -45,14 +45,14 @@ abstract class CrudSpec[Model <: Identifiable: ShowPretty, Create, Update](val n
       } yield list.size shouldBe 1
     }
 
-    s"get ${name}s (existing id)" in resource.use[IO, Assertion] { model =>
+    s"get ${name}s (existing id)" in resource.use { model =>
       service.get(model.id).idempotently(_.value shouldBe model)
     }
     s"get ${name}s (non-existing id)" in {
       service.get("non-existing-id").idempotently(_ shouldBe None)
     }
 
-    s"apply ${name}s (existing id)" in resource.use[IO, Assertion] { model =>
+    s"apply ${name}s (existing id)" in resource.use { model =>
       service.apply(model.id).idempotently(_ shouldBe model)
     }
     s"apply ${name}s (non-existing id)" in {
@@ -64,16 +64,16 @@ abstract class CrudSpec[Model <: Identifiable: ShowPretty, Create, Update](val n
       }
     }
 
-    s"update ${name}s" in resource.use[IO, Assertion] { model =>
+    s"update ${name}s" in resource.use { model =>
       val dummyUpdate = updateStub
       service.update(model.id, dummyUpdate).idempotently(compareUpdate(dummyUpdate, _))
     }
 
-    s"delete ${name}s" in resource.use[IO, Assertion] { model =>
+    s"delete ${name}s" in resource.use { model =>
       service.delete(model.id).idempotently(_ shouldBe ())
     }
     
-    s"show ${name}s" in resource.use[IO, Assertion] { model =>
+    s"show ${name}s" in resource.use { model =>
       //This line is a fail fast mechanism, and prevents false positives from the linter
       println(show"$model")
       IO("""show"$model"""" should compile): @nowarn

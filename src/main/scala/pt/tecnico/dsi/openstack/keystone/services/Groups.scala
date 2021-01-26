@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import cats.syntax.flatMap._
 import org.http4s.Method.{HEAD, PUT}
 import org.http4s.Status.Conflict
@@ -14,7 +14,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{Group, KeystoneError, Session, 
  * The service class for groups.
  * @define domainModel group
  */
-final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session)
+final class Groups[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Group, Group.Create, Group.Update](baseUri, "group", session.authToken)
     with UniqueWithinDomain[F, Group] {
   
@@ -31,7 +31,7 @@ final class Groups[F[_]: Sync: Client](baseUri: Uri, session: Session)
       description = Option(create.description).filter(_ != existing.description),
     )
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
-    else Sync[F].pure(existing)
+    else Concurrent[F].pure(existing)
   }
   override def createOrUpdate(create: Group.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
     (resolveConflict: (Group, Group.Create) => F[Group] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Group] = {

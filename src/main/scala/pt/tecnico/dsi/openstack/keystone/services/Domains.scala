@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import cats.syntax.flatMap._
 import org.http4s.Method.DELETE
 import org.http4s.Status.{Conflict, Forbidden, Gone, NotFound, Successful}
@@ -14,7 +14,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{Domain, KeystoneError, Scope, S
  * The service class for domains.
  * @define domainModel domain
  */
-final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
+final class Domains[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Domain, Domain.Create, Domain.Update](baseUri, "domain", session.authToken)
     with EnableDisableEndpoints[F, Domain] {
   
@@ -52,7 +52,7 @@ final class Domains[F[_]: Sync: Client](baseUri: Uri, session: Session)
       enabled = Option(create.enabled).filter(_ != existing.enabled),
     )
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
-    else Sync[F].pure(existing)
+    else Concurrent[F].pure(existing)
   }
   override def createOrUpdate(create: Domain.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
     (resolveConflict: (Domain, Domain.Create) => F[Domain] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Domain] = {

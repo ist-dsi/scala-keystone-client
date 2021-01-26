@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import io.circe.{Decoder, Encoder, Json, Printer}
@@ -35,44 +35,44 @@ object KeystoneClient {
   case class Credential private (id: Option[String], name: Option[String], password: String, domain: Option[Scope.Domain])
   
   /** Authenticates an identity and generates a token. Uses the password authentication method. Authorization is unscoped. */
-  def authenticateWithPassword[F[_]: Client: Sync](baseUri: Uri, userId: String, password: String): F[KeystoneClient[F]] =
+  def authenticateWithPassword[F[_]: Client: Concurrent](baseUri: Uri, userId: String, password: String): F[KeystoneClient[F]] =
     authenticate(baseUri, Left(Credential(userId, password)))
   /** Authenticates an identity and generates a token. Uses the password authentication method and scopes authorization to `scope`. */
-  def authenticateWithPassword[F[_]: Client: Sync](baseUri: Uri, userId: String, password: String, scope: Scope): F[KeystoneClient[F]] =
+  def authenticateWithPassword[F[_]: Client: Concurrent](baseUri: Uri, userId: String, password: String, scope: Scope): F[KeystoneClient[F]] =
     authenticate(baseUri, Left(Credential(userId, password)), Some(scope))
   
   /** Authenticates an identity and generates a token. Uses the password authentication method. Authorization is unscoped. */
-  def authenticateWithPassword[F[_]: Client: Sync](baseUri: Uri, username: String, password: String, domain: Scope.Domain): F[KeystoneClient[F]] =
+  def authenticateWithPassword[F[_]: Client: Concurrent](baseUri: Uri, username: String, password: String, domain: Scope.Domain): F[KeystoneClient[F]] =
     authenticate(baseUri, Left(Credential(username, password, domain)))
   /** Authenticates an identity and generates a token. Uses the password authentication method and scopes authorization to `scope`. */
-  def authenticateWithPassword[F[_]: Client: Sync](baseUri: Uri, username: String, password: String, domain: Scope.Domain, scope: Scope): F[KeystoneClient[F]] =
+  def authenticateWithPassword[F[_]: Client: Concurrent](baseUri: Uri, username: String, password: String, domain: Scope.Domain, scope: Scope): F[KeystoneClient[F]] =
     authenticate(baseUri, Left(Credential(username, password, domain)), Some(scope))
   
   /**
    * Authenticates an identity and generates a token. Uses the token authentication method. Authorization is unscoped.
    * @param token the token to use for authentication.
    */
-  def authenticateWithToken[F[_]: Client: Sync](baseUri: Uri, token: String): F[KeystoneClient[F]] =
+  def authenticateWithToken[F[_]: Client: Concurrent](baseUri: Uri, token: String): F[KeystoneClient[F]] =
     authenticate(baseUri, Right(token))
   /**
    * Authenticates an identity and generates a token. Uses the token authentication method and scopes authorization to `scope`.
    * @param token the token to use for authentication.
    * @param scope the scope to which the authorization will be scoped to.
    */
-  def authenticateWithToken[F[_]: Client: Sync](baseUri: Uri, token: String, scope: Scope): F[KeystoneClient[F]] =
+  def authenticateWithToken[F[_]: Client: Concurrent](baseUri: Uri, token: String, scope: Scope): F[KeystoneClient[F]] =
     authenticate(baseUri, Right(token), Some(scope))
   
   /** Authenticates using the environment variables. */
-  def authenticateFromEnvironment[F[_]: Client: Sync](env: Map[String, String] = sys.env): F[KeystoneClient[F]] = {
+  def authenticateFromEnvironment[F[_]: Client: Concurrent](env: Map[String, String] = sys.env): F[KeystoneClient[F]] = {
     lazy val tokenOpt = env.get("OS_TOKEN").filter(_.nonEmpty)
     lazy val computedAuthType = tokenOpt.map(_ => "token").getOrElse("password")
     val scopeOpt = Scope.fromEnvironment(env)
     
-    def error[A](message: String): F[A] = Sync[F].raiseError(new Throwable(message))
+    def error[A](message: String): F[A] = Concurrent[F].raiseError(new Throwable(message))
     
     for {
-      authUrl <- Sync[F].fromOption(env.get("OS_AUTH_URL"), new Throwable(s"Could not get OS_AUTH_URL from the environment"))
-      baseUri <- Sync[F].fromEither(Uri.fromString(authUrl))
+      authUrl <- Concurrent[F].fromOption(env.get("OS_AUTH_URL"), new Throwable(s"Could not get OS_AUTH_URL from the environment"))
+      baseUri <- Concurrent[F].fromEither(Uri.fromString(authUrl))
       client <- env.getOrElse("OS_AUTH_TYPE", computedAuthType).toLowerCase match {
         case "token" | "v3token" => tokenOpt match {
           case Some(token) => authenticate(baseUri, Right(token), scopeOpt)
@@ -117,7 +117,7 @@ object KeystoneClient {
    * @return On a successful authentication an `F` with a `KeystoneClient`. On failure `F` will contain an error.
    */
   def authenticate[F[_]](baseUri: Uri, method: Either[Credential, String], scope: Option[Scope] = None)
-    (implicit client: Client[F], F: Sync[F]): F[KeystoneClient[F]] = {
+    (implicit client: Client[F], F: Concurrent[F]): F[KeystoneClient[F]] = {
     
     val dsl = new Http4sClientDsl[F] {}
     import dsl._
@@ -139,7 +139,7 @@ object KeystoneClient {
     val uri: Uri = if (baseUri.path.dropEndsWithSlash.toString.endsWith("v3")) baseUri else baseUri / "v3"
     
     val request = POST(authenticationBody(method, scope), uri / "auth" / "tokens")
-    client.run(request).use[F, Session] {
+    client.run(request).use[Session] {
       case Successful(response) =>
         response.headers.get(CIString("X-Subject-Token")) match {
           case None => F.raiseError(new IllegalStateException("Could not get X-Subject-Token from authentication response."))
@@ -151,7 +151,7 @@ object KeystoneClient {
     }.map(session => new KeystoneClient(uri, session)(client, F))
   }
 }
-class KeystoneClient[F[_]: Client: Sync](val uri: Uri, val session: Session) {
+class KeystoneClient[F[_]: Client: Concurrent](val uri: Uri, val session: Session) {
   val authentication = new Authentication[F](uri, session)
   val domains = new Domains[F](uri, session)
   val groups = new Groups[F](uri, session)

@@ -1,6 +1,6 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import org.http4s.Status.Conflict
@@ -14,7 +14,7 @@ import pt.tecnico.dsi.openstack.keystone.models.{KeystoneError, Project, Scope, 
  * The service class for projects.
  * @define domainModel project
  */
-final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
+final class Projects[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
   extends CrudService[F, Project, Project.Create, Project.Update](baseUri, "project", session.authToken)
     with UniqueWithinDomain[F, Project]
     with EnableDisableEndpoints[F, Project] {
@@ -48,7 +48,7 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
       tags = Option(newTags).filter(_ != existing.tags),
     )
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
-    else Sync[F].pure(existing)
+    else Concurrent[F].pure(existing)
   }
   override def createOrUpdate(create: Project.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
     (resolveConflict: (Project, Project.Create) => F[Project] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Project] = {
@@ -60,17 +60,17 @@ final class Projects[F[_]: Sync: Client](baseUri: Uri, session: Session)
           case _ =>
             // TODO: I think the initial post will have already thrown a similar response
             val message = s"Cannot create a Project idempotently because more than one exists with name: ${create.name} and isDomain = true."
-            Sync[F].raiseError(KeystoneError(message, Conflict.code, Conflict.reason))
+            Concurrent[F].raiseError(KeystoneError(message, Conflict.code, Conflict.reason))
         }
       } else {
         val computeDomainId: F[String] = create.domainId match {
-          case Some(domainId) => Sync[F].pure(domainId)
+          case Some(domainId) => Concurrent[F].pure(domainId)
           // For regular projects if domain_id is not specified, but parent_id is specified, then the domain ID of the parent will be used.
           // If neither domain_id or parent_id is specified, the Identity service implementation will default to the domain to which the client’s token is scoped.
           case None => create.parentId match {
             // If the parent project doesn't exist the initial POST (performed by the postHandleConflict) will already have thrown an error
             case Some(parentId) => apply(parentId).map(project => project.domainId)
-            case None => Sync[F].pure(session.scopedDomainId())
+            case None => Concurrent[F].pure(session.scopedDomainId())
           }
         }
         computeDomainId.flatMap { domainId =>

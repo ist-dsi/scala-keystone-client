@@ -34,14 +34,14 @@ final class DomainSpec extends CrudSpec[Domain, Domain.Create, Domain.Update]("d
         result <- keystone.domains.delete(obj.id, force = true).idempotently(_ shouldBe ())
       } yield result
     }
-    s"enable a $name" in resource.use[IO, Assertion] { model =>
+    s"enable a $name" in resource.use { model =>
       for {
         result <- service.enable(model.id).idempotently(_.enabled shouldBe true)
         _ <- service.disable(model.id) // We need to disable the domain, otherwise the Resource cleanup will fail with forbidden
       } yield result
     }
 
-    s"disable a $name" in resource.use[IO, Assertion] { model =>
+    s"disable a $name" in resource.use { model =>
       service.disable(model.id).idempotently(_.enabled shouldBe false)
     }
   }
