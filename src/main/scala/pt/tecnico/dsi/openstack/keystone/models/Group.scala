@@ -1,8 +1,7 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import cats.derived
+import cats.{Applicative, derived}
 import cats.derived.ShowPretty
-import cats.effect.Sync
 import cats.instances.list._
 import cats.syntax.foldable._
 import io.circe.{Decoder, Encoder}
@@ -60,10 +59,10 @@ final case class Group(
 ) extends Identifiable { self =>
   def domain[F[_]](implicit client: KeystoneClient[F]): F[Domain] = client.domains(domainId)
   
-  def users[F[_]: Sync](implicit client: KeystoneClient[F]): F[List[User]] = client.groups.listUsers(self.id)
-  def addUser[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.addUser(self.id, id)
-  def addUsers[F[_]: Sync](ids: List[String])(implicit client: KeystoneClient[F]): F[Unit] = ids.traverse_(client.groups.addUser(self.id, _))
-  def removeUser[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.removeUser(self.id, id)
-  def removeUsers[F[_]: Sync](ids: List[String])(implicit client: KeystoneClient[F]): F[Unit] = ids.traverse_(client.groups.removeUser(self.id, _))
-  def isUserInGroup[F[_]: Sync](id: String)(implicit client: KeystoneClient[F]): F[Boolean] = client.groups.isUserInGroup(self.id, id)
+  def users[F[_]](implicit client: KeystoneClient[F]): F[List[User]] = client.groups.listUsers(self.id)
+  def addUser[F[_]](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.addUser(self.id, id)
+  def addUsers[F[_]: Applicative](ids: List[String])(implicit client: KeystoneClient[F]): F[Unit] = ids.traverse_(client.groups.addUser(self.id, _))
+  def removeUser[F[_]](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.removeUser(self.id, id)
+  def removeUsers[F[_]: Applicative](ids: List[String])(implicit client: KeystoneClient[F]): F[Unit] = ids.traverse_(client.groups.removeUser(self.id, _))
+  def isUserInGroup[F[_]](id: String)(implicit client: KeystoneClient[F]): F[Boolean] = client.groups.isUserInGroup(self.id, id)
 }

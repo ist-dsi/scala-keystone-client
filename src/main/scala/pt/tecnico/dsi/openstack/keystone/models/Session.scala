@@ -3,7 +3,7 @@ package pt.tecnico.dsi.openstack.keystone.models
 import java.time.OffsetDateTime
 import cats.{Show, derived}
 import cats.derived.ShowPretty
-import cats.effect.Sync
+import cats.effect.Concurrent
 import io.circe.{Decoder, HCursor}
 import org.http4s.client.Client
 import org.http4s.{Header, Uri}
@@ -73,7 +73,7 @@ final case class Session(
    * @param region the region for which to get the service url from the catalog
    * @param interface the interface for which to get the service url from the catalog
    */
-  def clientBuilder[F[_]: Sync: Client](builder: ClientBuilder, region: String,
+  def clientBuilder[F[_]: Concurrent: Client](builder: ClientBuilder, region: String,
     interface: Interface = Interface.Public): Either[String, builder.OpenstackClient[F]] = for {
     entry <- catalog.find(_.`type` == builder.`type`).toRight(s"""Could not find "${builder.`type`}" service in the catalog""")
     publicUrls <- entry.urlsOf(interface).toRight(s"""Service "${builder.`type`}" does not have $interface endpoints""")
@@ -91,5 +91,5 @@ trait ClientBuilder {
   /** The catalog entry `type` for the `OpenstackClient`. Eg: for the neutron client it would be "network" */
   val `type`: String
   
-  def apply[F[_]: Sync: Client](baseUri: Uri, session: Session): OpenstackClient[F]
+  def apply[F[_]: Concurrent: Client](baseUri: Uri, session: Session): OpenstackClient[F]
 }
