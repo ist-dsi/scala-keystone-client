@@ -79,6 +79,7 @@ object User {
       case Left(_) => cursor
     }
   }
+  implicit val encoder: Encoder[User] = deriveEncoder(renaming.snakeCase)
   
   implicit val show: ShowPretty[User] = derived.semiauto.showPretty
 }

@@ -2,8 +2,8 @@ package pt.tecnico.dsi.openstack.keystone.models
 
 import cats.derived
 import cats.derived.ShowPretty
-import io.circe.{Decoder, Encoder}
-import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
+import io.circe.derivation.{deriveCodec, deriveEncoder, renaming}
+import io.circe.{Codec, Encoder}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
 object Service {
@@ -51,7 +51,7 @@ object Service {
     }
   }
   
-  implicit val decoder: Decoder[Service] = deriveDecoder(renaming.snakeCase)
+  implicit val codec: Codec[Service] = deriveCodec(renaming.snakeCase)
   implicit val show: ShowPretty[Service] = derived.semiauto.showPretty
 }
 final case class Service(

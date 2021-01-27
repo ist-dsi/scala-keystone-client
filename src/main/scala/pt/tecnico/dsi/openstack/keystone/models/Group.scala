@@ -4,8 +4,8 @@ import cats.{Applicative, derived}
 import cats.derived.ShowPretty
 import cats.instances.list._
 import cats.syntax.foldable._
-import io.circe.{Decoder, Encoder}
-import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
+import io.circe.{Codec, Encoder}
+import io.circe.derivation.{deriveCodec, deriveEncoder, renaming}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 
@@ -47,7 +47,7 @@ object Group {
     }
   }
   
-  implicit val codec: Decoder[Group] = deriveDecoder(renaming.snakeCase)
+  implicit val codec: Codec[Group] = deriveCodec(renaming.snakeCase)
   implicit val show: ShowPretty[Group] = derived.semiauto.showPretty
 }
 final case class Group(

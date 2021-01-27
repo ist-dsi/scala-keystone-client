@@ -2,8 +2,8 @@ package pt.tecnico.dsi.openstack.keystone.models
 
 import cats.derived
 import cats.derived.ShowPretty
-import io.circe.derivation.{deriveDecoder, renaming}
-import io.circe.{Decoder, HCursor}
+import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
+import io.circe.{Decoder, Encoder, HCursor}
 
 object CatalogEntry {
   private implicit val decoderUrl: Decoder[Url] = deriveDecoder(renaming.snakeCase)
@@ -15,6 +15,8 @@ object CatalogEntry {
     name <- c.get[String]("name")
     urls <- c.get[List[Url]]("endpoints")
   } yield CatalogEntry(tpe, serviceId, name, urls.map(url => Endpoint(url.id, url.interface, url.regionId, url.url, serviceId)))
+  
+  implicit val encoder: Encoder[CatalogEntry] = deriveEncoder(renaming.snakeCase)
   
   implicit val show: ShowPretty[CatalogEntry] = derived.semiauto.showPretty
 }

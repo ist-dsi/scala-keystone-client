@@ -2,7 +2,8 @@ package pt.tecnico.dsi.openstack.keystone.models
 
 import cats.derived
 import cats.derived.ShowPretty
-import io.circe.{Decoder, HCursor}
+import io.circe.derivation.{deriveEncoder, renaming}
+import io.circe.{Decoder, Encoder, HCursor}
 import pt.tecnico.dsi.openstack.common.models.Link
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 
@@ -32,6 +33,8 @@ sealed trait Assignment {
 
 object UserAssignment {
   implicit val decoder: Decoder[UserAssignment] = Assignment.decoder.asInstanceOf[Decoder[UserAssignment]]
+  implicit val encoder: Encoder[UserAssignment] = deriveEncoder(renaming.snakeCase)
+  
   implicit val show: ShowPretty[UserAssignment] = derived.semiauto.showPretty
 }
 case class UserAssignment(
@@ -47,6 +50,8 @@ case class UserAssignment(
 
 object GroupAssignment {
   implicit val decoder: Decoder[GroupAssignment] = Assignment.decoder.asInstanceOf[Decoder[GroupAssignment]]
+  implicit val encoder: Encoder[GroupAssignment] = deriveEncoder(renaming.snakeCase)
+  
   implicit val show: ShowPretty[UserAssignment] = derived.semiauto.showPretty
 }
 case class GroupAssignment(

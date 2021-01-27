@@ -2,8 +2,8 @@ package pt.tecnico.dsi.openstack.keystone.models
 
 import cats.derived
 import cats.derived.ShowPretty
-import io.circe.{Decoder, Encoder}
-import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
+import io.circe.derivation.{deriveCodec, deriveEncoder, renaming}
+import io.circe.{Codec, Encoder}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
 object Region {
@@ -43,7 +43,7 @@ object Region {
     }
   }
   
-  implicit val decoder: Decoder[Region] = deriveDecoder(renaming.snakeCase)
+  implicit val codec: Codec[Region] = deriveCodec(renaming.snakeCase)
   implicit val show: ShowPretty[Region] = derived.semiauto.showPretty
 }
 final case class Region(

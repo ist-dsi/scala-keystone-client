@@ -2,8 +2,8 @@ package pt.tecnico.dsi.openstack.keystone.models
 
 import cats.derived
 import cats.derived.ShowPretty
-import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
-import io.circe.{Decoder, Encoder}
+import io.circe.derivation.{deriveCodec, deriveEncoder, renaming}
+import io.circe.{Codec, Encoder}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
@@ -56,7 +56,7 @@ object Domain {
     }
   }
   
-  implicit val decoder: Decoder[Domain] = deriveDecoder(renaming.snakeCase)
+  implicit val codec: Codec[Domain] = deriveCodec(renaming.snakeCase)
   implicit val show: ShowPretty[Domain] = derived.semiauto.showPretty
 }
 /**
