@@ -26,6 +26,30 @@ final class Roles[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
   def list(name: Option[String] = None, domainId: Option[String] = None): F[List[Role]] =
     list(Query("name" -> name, "domain_id" -> domainId))
   
+  /**
+   * Get detailed information about the role specified by name and without a domain.
+   *
+   * @param name the role name
+   * @return a Some(role) matching the name and without a domain if it exists. A None otherwise.
+   */
+  def getWithoutDomain(name: String): F[Option[Role]] = {
+    // The roles API allows two roles with the same name one with a domain and the other without a domain. However it does not
+    // allow in list to filter by an empty domain. Hence this slightly ugly code.
+    stream("name" -> name).filter(_.domainId.isEmpty).compile.last
+  }
+  
+  /**
+   * Get detailed information about the role specified by name and without a domain, assuming it exists.
+   *
+   * @param name the role name
+   * @return the role matching the name and without a domain. If no such role exists F will contain an error.
+   */
+  def applyWithoutDomain(name: String): F[Role] =
+    getWithoutDomain(name).flatMap {
+      case Some(role) => F.pure(role)
+      case None => F.raiseError(new NoSuchElementException(s"""Could not find ${this.name} named "$name" without a domain."""))
+    }
+  
   override def defaultResolveConflict(existing: Role, create: Role.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Role] = {
     val updated = Role.Update(
       description = if (create.description != existing.description) create.description else None,
