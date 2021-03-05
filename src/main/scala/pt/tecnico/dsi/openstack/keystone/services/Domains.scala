@@ -46,7 +46,7 @@ final class Domains[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
       case None => F.raiseError(new NoSuchElementException(s"""Could not find domain named "$name""""))
     }
   
-  override def defaultResolveConflict(existing: Domain, create: Domain.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Domain] = {
+  override def defaultResolveConflict(existing: Domain, create: Domain.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Domain] = {
     val updated = Domain.Update(
       description = Option(create.description).filter(_ != existing.description),
       enabled = Option(create.enabled).filter(_ != existing.enabled),
@@ -54,7 +54,7 @@ final class Domains[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
     else Concurrent[F].pure(existing)
   }
-  override def createOrUpdate(create: Domain.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
+  override def createOrUpdate(create: Domain.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
     (resolveConflict: (Domain, Domain.Create) => F[Domain] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Domain] = {
     // How do you think Openstack implements Domains? As a project with isDomain = true? Thumbs up for good implementations </sarcasm>
     val conflicting = """.*?it is not permitted to have two projects acting as domains with the same name: ([^.]+)\.""".r
@@ -67,7 +67,7 @@ final class Domains[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     }
   }
   
-  override def update(id: String, update: Domain.Update, extraHeaders: Header*): F[Domain] =
+  override def update(id: String, update: Domain.Update, extraHeaders: Header.ToRaw*): F[Domain] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
   
   override protected def updateEnable(id: String, enabled: Boolean): F[Domain] =

@@ -4,6 +4,7 @@ import cats.effect.Concurrent
 import org.http4s.Method.{DELETE, GET, HEAD}
 import org.http4s.client.Client
 import org.http4s.{Header, Uri}
+import org.typelevel.ci.CIString
 import pt.tecnico.dsi.openstack.common.services.Service
 import pt.tecnico.dsi.openstack.keystone.models.Scope.System
 import pt.tecnico.dsi.openstack.keystone.models.{CatalogEntry, Domain, Project, Session}
@@ -13,7 +14,7 @@ final class Authentication[F[_]: Concurrent: Client](baseUri: Uri, session: Sess
   
   override val uri: Uri = baseUri / "auth"
   
-  private def subjectToken(token: String): Header = Header("X-Subject-Token", token)
+  private def subjectToken(token: String): Header.Raw = Header.Raw(CIString("X-Subject-Token"), token)
   
   /** Validates and shows information for `token`, including its expiration date and authorization scope. */
   def validateAndShowInformation(token: String): F[Session] =

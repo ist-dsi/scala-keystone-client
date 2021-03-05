@@ -8,11 +8,11 @@ import io.circe.derivation.{deriveEncoder, renaming}
 import io.circe.syntax._
 import org.http4s.Method.POST
 import org.http4s.Status.Successful
-import org.http4s.{EntityDecoder, EntityEncoder, Header, Request, Response, Uri, circe}
+import org.http4s.{EntityDecoder, EntityEncoder, Request, Response, Uri, circe}
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
 import org.typelevel.ci.CIString
-import pt.tecnico.dsi.openstack.common.models.UnexpectedStatus
+import pt.tecnico.dsi.openstack.common.models.{AuthToken, UnexpectedStatus}
 import pt.tecnico.dsi.openstack.keystone.models.{Scope, Session}
 import pt.tecnico.dsi.openstack.keystone.services._
 
@@ -144,7 +144,7 @@ object KeystoneClient {
         response.headers.get(CIString("X-Subject-Token")) match {
           case None => F.raiseError(new IllegalStateException("Could not get X-Subject-Token from authentication response."))
           case Some(token) =>
-            implicit val sessionDecoder: Decoder[Session] = Session.decoder(Header("X-Auth-Token", token.value))
+            implicit val sessionDecoder: Decoder[Session] = Session.decoder(AuthToken(token.head.value))
             response.as[Session]
         }
       case failedResponse => defaultOnError(request, failedResponse)

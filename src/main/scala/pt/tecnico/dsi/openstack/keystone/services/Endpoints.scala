@@ -25,7 +25,7 @@ final class Endpoints[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
       "region_id" -> regionId,
     ))
   
-  override def defaultResolveConflict(existing: Endpoint, create: Endpoint.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Endpoint] = {
+  override def defaultResolveConflict(existing: Endpoint, create: Endpoint.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Endpoint] = {
     val updated = Endpoint.Update(
       url = Option(create.url).filter(_ != existing.url),
       enabled = Option(create.enabled).filter(_ != existing.enabled),
@@ -33,7 +33,7 @@ final class Endpoints[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
     else Concurrent[F].pure(existing)
   }
-  override def createOrUpdate(create: Endpoint.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
+  override def createOrUpdate(create: Endpoint.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
     (resolveConflict: (Endpoint, Endpoint.Create) => F[Endpoint] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Endpoint] = {
     // Openstack always creates a new endpoint now matter what.
     list(Some(create.interface), Some(create.serviceId), Some(create.regionId)).flatMap {
@@ -50,7 +50,7 @@ final class Endpoints[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     }
   }
   
-  override def update(id: String, update: Endpoint.Update, extraHeaders: Header*): F[Endpoint] =
+  override def update(id: String, update: Endpoint.Update, extraHeaders: Header.ToRaw*): F[Endpoint] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
   
   override protected def updateEnable(id: String, enabled: Boolean): F[Endpoint] =

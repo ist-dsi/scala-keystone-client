@@ -26,14 +26,14 @@ final class Groups[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
   def list(name: Option[String] = None, domainId: Option[String] = None): F[List[Group]] =
     list(Query("name" -> name, "domain_ id" -> domainId))
 
-  override def defaultResolveConflict(existing: Group, create: Group.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Group] = {
+  override def defaultResolveConflict(existing: Group, create: Group.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Group] = {
     val updated = Group.Update(
       description = Option(create.description).filter(_ != existing.description),
     )
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
     else Concurrent[F].pure(existing)
   }
-  override def createOrUpdate(create: Group.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
+  override def createOrUpdate(create: Group.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
     (resolveConflict: (Group, Group.Create) => F[Group] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Group] = {
     val conflicting = """.*?Duplicate entry found with name ([^ ]+) at domain ID ([^.]+)\.""".r
     createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
@@ -45,7 +45,7 @@ final class Groups[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     }
   }
   
-  override def update(id: String, update: Group.Update, extraHeaders: Header*): F[Group] =
+  override def update(id: String, update: Group.Update, extraHeaders: Header.ToRaw*): F[Group] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
   
   //TODO: passwordExpiresAt should not be a string

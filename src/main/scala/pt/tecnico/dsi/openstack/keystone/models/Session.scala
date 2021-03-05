@@ -8,10 +8,11 @@ import io.circe.{Decoder, HCursor}
 import org.http4s.client.Client
 import org.http4s.{Header, Uri}
 import io.chrisdavenport.cats.time.offsetdatetimeInstances
+import pt.tecnico.dsi.openstack.common.models.AuthToken
 
 object Session {
   // Not implicit because otherwise the compiler interprets it as an implicit conversion
-  def decoder(authToken: Header): Decoder[Session] = { cursor: HCursor =>
+  def decoder(authToken: AuthToken): Decoder[Session] = { cursor: HCursor =>
     val tokenCursor = cursor.downField("token")
     for {
       user <- tokenCursor.get[User]("user")
@@ -27,7 +28,7 @@ object Session {
   }
   
   implicit val show: ShowPretty[Session] = {
-    implicit val showHeader: Show[Header] = Show.show(h => s"${h.name}: <REDACTED>")
+    implicit val showHeader: Show[AuthToken] = Show.show(_ => s"${implicitly[Header[AuthToken, _]].name}: <REDACTED>")
     derived.semiauto.showPretty
   }
 }
@@ -39,7 +40,7 @@ final case class Session(
   roles: List[Role] = List.empty,
   catalog: List[CatalogEntry] = List.empty,
   scope: Scope,
-  authToken: Header,
+  authToken: AuthToken,
 ) {
   /** @return the project id if the session is Project scoped. */
   def scopedProjectId: Option[String] = scope match {

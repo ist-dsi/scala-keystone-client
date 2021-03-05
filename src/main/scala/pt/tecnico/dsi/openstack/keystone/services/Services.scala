@@ -24,7 +24,7 @@ final class Services[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     */
   def list(name: Option[String] = None, `type`: Option[String] = None): F[List[Service]] = list(Query("name" -> name, "type" -> `type`))
   
-  override def defaultResolveConflict(existing: Service, create: Service.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Service] = {
+  override def defaultResolveConflict(existing: Service, create: Service.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Service] = {
     val updated = Service.Update(
       description = if (create.description != existing.description) create.description else None,
       enabled = Option(create.enabled).filter(_ != existing.enabled),
@@ -32,7 +32,7 @@ final class Services[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
     else Concurrent[F].pure(existing)
   }
-  override def createOrUpdate(create: Service.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
+  override def createOrUpdate(create: Service.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
     (resolveConflict: (Service, Service.Create) => F[Service] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Service] = {
     // Openstack always creates a new service now matter what.
     list(Some(create.name), Some(create.`type`)).flatMap {
@@ -46,7 +46,7 @@ final class Services[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     }
   }
   
-  override def update(id: String, update: Service.Update, extraHeaders: Header*): F[Service] =
+  override def update(id: String, update: Service.Update, extraHeaders: Header.ToRaw*): F[Service] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
   
   override protected def updateEnable(id: String, enabled: Boolean): F[Service] =

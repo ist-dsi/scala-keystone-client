@@ -22,7 +22,7 @@ final class Regions[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     */
   def list(parentRegionId: Option[String] = None): F[List[Region]] = list(Query("parent_region_id" -> parentRegionId))
   
-  override def defaultResolveConflict(existing: Region, create: Region.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Region] = {
+  override def defaultResolveConflict(existing: Region, create: Region.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Region] = {
     val updated = Region.Update(
       Option(create.description).filter(_ != existing.description),
       if (create.parentRegionId != existing.parentRegionId) create.parentRegionId else None,
@@ -30,7 +30,7 @@ final class Regions[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
     else Concurrent[F].pure(existing)
   }
-  override def createOrUpdate(create: Region.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
+  override def createOrUpdate(create: Region.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
     (resolveConflict: (Region, Region.Create) => F[Region] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Region] = {
     val conflicting = """.*?Duplicate ID, ([^.]+)\..*?""".r
     createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
@@ -42,6 +42,6 @@ final class Regions[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     }
   }
   
-  override def update(id: String, update: Region.Update, extraHeaders: Header*): F[Region] =
+  override def update(id: String, update: Region.Update, extraHeaders: Header.ToRaw*): F[Region] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
 }

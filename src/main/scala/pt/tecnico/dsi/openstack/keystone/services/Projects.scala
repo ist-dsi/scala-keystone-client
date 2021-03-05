@@ -37,7 +37,7 @@ final class Projects[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
       "parent_id" -> parentId,
     ))
   
-  override def defaultResolveConflict(existing: Project, create: Project.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Project] = {
+  override def defaultResolveConflict(existing: Project, create: Project.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Project] = {
     val newTags =
       if (keepExistingElements) create.tags ++ existing.tags.diff(create.tags)
       else create.tags
@@ -50,7 +50,7 @@ final class Projects[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
     else Concurrent[F].pure(existing)
   }
-  override def createOrUpdate(create: Project.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
+  override def createOrUpdate(create: Project.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
     (resolveConflict: (Project, Project.Create) => F[Project] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Project] = {
     createHandleConflict(create, uri, extraHeaders) {
       if (create.isDomain) {
@@ -84,7 +84,7 @@ final class Projects[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     }
   }
   
-  override def update(id: String, update: Project.Update, extraHeaders: Header*): F[Project] =
+  override def update(id: String, update: Project.Update, extraHeaders: Header.ToRaw*): F[Project] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
   
   override protected def updateEnable(id: String, enabled: Boolean): F[Project] =

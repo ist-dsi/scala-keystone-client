@@ -42,7 +42,7 @@ final class Users[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
       "unique_id" -> uniqueId,
     ))
   
-  override def defaultResolveConflict(existing: User, create: User.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[User] = {
+  override def defaultResolveConflict(existing: User, create: User.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[User] = {
     // TODO: should we always update because of the password? We could try to authenticate with the user to check if the password is valid
     if (existing.defaultProjectId != create.defaultProjectId || existing.enabled != create.enabled) {
       val updated = User.Update(
@@ -55,7 +55,7 @@ final class Users[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
       Concurrent[F].pure(existing)
     }
   }
-  override def createOrUpdate(create: User.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
+  override def createOrUpdate(create: User.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
     (resolveConflict: (User, User.Create) => F[User] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[User] = {
     val conflicting = """.*?Duplicate entry found with name ([^ ]+) at domain ID ([^.]+)\.""".r
     createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
@@ -67,7 +67,7 @@ final class Users[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     }
   }
   
-  override def update(id: String, update: User.Update, extraHeaders: Header*): F[User] =
+  override def update(id: String, update: User.Update, extraHeaders: Header.ToRaw*): F[User] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
   
   override protected def updateEnable(id: String, enabled: Boolean): F[User] =

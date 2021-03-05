@@ -50,14 +50,14 @@ final class Roles[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
       case None => F.raiseError(new NoSuchElementException(s"""Could not find ${this.name} named "$name" without a domain."""))
     }
   
-  override def defaultResolveConflict(existing: Role, create: Role.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header]): F[Role] = {
+  override def defaultResolveConflict(existing: Role, create: Role.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Role] = {
     val updated = Role.Update(
       description = if (create.description != existing.description) create.description else None,
     )
     if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
     else Concurrent[F].pure(existing)
   }
-  override def createOrUpdate(create: Role.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header] = Seq.empty)
+  override def createOrUpdate(create: Role.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
     (resolveConflict: (Role, Role.Create) => F[Role] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Role] = {
     val conflicting = """.*?Duplicate entry found with name ([^ ]+)(?: at domain ID ([^.]+))?\.""".r
     createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
@@ -85,7 +85,7 @@ final class Roles[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     }
   }
   
-  override def update(id: String, update: Role.Update, extraHeaders: Header*): F[Role] =
+  override def update(id: String, update: Role.Update, extraHeaders: Header.ToRaw*): F[Role] =
     super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
   
   /** Allows performing role assignment operations on the domain with `id` */
