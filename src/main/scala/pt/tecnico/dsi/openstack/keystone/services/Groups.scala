@@ -24,7 +24,7 @@ final class Groups[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     * @return a stream of groups filtered by the various parameters.
     */
   def list(name: Option[String] = None, domainId: Option[String] = None): F[List[Group]] =
-    list(Query("name" -> name, "domain_ id" -> domainId))
+    list(Query("name" -> name, "domain_id" -> domainId))
 
   override def defaultResolveConflict(existing: Group, create: Group.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Group] = {
     val updated = Group.Update(

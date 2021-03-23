@@ -29,13 +29,15 @@ final class Projects[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     */
   def list(name: Option[String] = None, domainId: Option[String] = None, enabled: Option[Boolean],
            isDomain: Option[Boolean] = None, parentId: Option[String] = None): F[List[Project]] =
-    list(Query(
-      "name" -> name,
-      "domain_ id" -> domainId,
-      "enabled" -> enabled.map(_.toString),
-      "is_domain" -> isDomain.map(_.toString),
-      "parent_id" -> parentId,
-    ))
+    list(Query.fromVector {
+      Vector(
+        "name" -> name,
+        "domain_id" -> domainId,
+        "enabled" -> enabled.map(_.toString),
+        "is_domain" -> isDomain.map(_.toString),
+        "parent_id" -> parentId,
+      ).filter { case (_, value) => value.isDefined }
+    })
   
   override def defaultResolveConflict(existing: Project, create: Project.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Project] = {
     val newTags =

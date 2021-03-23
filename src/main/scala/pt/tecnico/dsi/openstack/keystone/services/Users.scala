@@ -32,15 +32,17 @@ final class Users[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     */
   def list(name: Option[String] = None, domainId: Option[String] = None, passwordExpiresAt: Option[String], enabled: Option[Boolean],
            idpId: Option[String] = None, protocolId: Option[String] = None, uniqueId: Option[String] = None): F[List[User]] =
-    list(Query(
-      "name" -> name,
-      "domain_ id" -> domainId,
-      "password_expires_at" -> passwordExpiresAt,
-      "enabled" -> enabled.map(_.toString),
-      "idp_id" -> idpId,
-      "protocol_id" -> protocolId,
-      "unique_id" -> uniqueId,
-    ))
+    list(Query.fromVector {
+      Vector(
+        "name" -> name,
+        "domain_id" -> domainId,
+        "password_expires_at" -> passwordExpiresAt,
+        "enabled" -> enabled.map(_.toString),
+        "idp_id" -> idpId,
+        "protocol_id" -> protocolId,
+        "unique_id" -> uniqueId,
+      ).filter { case (_, value) => value.isDefined }
+    })
   
   override def defaultResolveConflict(existing: User, create: User.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[User] = {
     // TODO: should we always update because of the password? We could try to authenticate with the user to check if the password is valid

@@ -21,7 +21,7 @@ final class Endpoints[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
   def list(interface: Option[Interface] = None, serviceId: Option[String] = None, regionId: Option[String] = None): F[List[Endpoint]] =
     list(Query(
       "interface" -> interface.map(_.toString.toLowerCase),
-      "service_ id" -> serviceId,
+      "service_id" -> serviceId,
       "region_id" -> regionId,
     ))
   
