@@ -41,11 +41,11 @@ Test / console / scalacOptions := (Compile / console / scalacOptions).value
 // ==== Dependencies ====================================================================================================
 // ======================================================================================================================
 libraryDependencies ++= Seq(
-  "pt.tecnico.dsi"  %% "scala-openstack-common-clients" % "0.9.0",
+  "pt.tecnico.dsi"  %% "scala-openstack-common-clients" % "0.10.0",
   "io.circe"        %% "circe-parser"      % "0.13.0", // Used in Credentials
   "com.beachape"    %% "enumeratum-circe"  % "1.6.1",
   "ch.qos.logback"  %  "logback-classic"   % "1.2.3" % Test,
-  "org.scalatest"   %% "scalatest"         % "3.2.6" % Test,
+  "org.scalatest"   %% "scalatest"         % "3.2.7" % Test,
 )
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
