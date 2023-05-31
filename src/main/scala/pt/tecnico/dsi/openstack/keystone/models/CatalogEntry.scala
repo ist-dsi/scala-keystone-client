@@ -1,26 +1,25 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import cats.derived
+import cats.derived.derived
 import cats.derived.ShowPretty
-import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
+import io.circe.derivation.{ConfiguredDecoder, ConfiguredEncoder}
 import io.circe.{Decoder, Encoder, HCursor}
 
-object CatalogEntry {
-  private implicit val decoderUrl: Decoder[Url] = deriveDecoder(renaming.snakeCase)
-  private case class Url(id: String, interface: Interface, regionId: String, url: String)
+object CatalogEntry:
+  private case class Url(id: String, interface: Interface, regionId: String, url: String) derives ConfiguredDecoder
   
-  implicit val decoder: Decoder[CatalogEntry] = (c: HCursor) => for {
+  given decoder: Decoder[CatalogEntry] = (c: HCursor) => for
     tpe <- c.get[String]("type")
     serviceId <- c.get[String]("id")
     name <- c.get[String]("name")
     urls <- c.get[List[Url]]("endpoints")
-  } yield CatalogEntry(tpe, serviceId, name, urls.map(url => Endpoint(url.id, url.interface, url.regionId, url.url, serviceId)))
-  
-  implicit val encoder: Encoder[CatalogEntry] = deriveEncoder(renaming.snakeCase)
-  
-  implicit val show: ShowPretty[CatalogEntry] = derived.semiauto.showPretty
-}
-final case class CatalogEntry(`type`: String, serviceId: String, serviceName: String, endpoints: List[Endpoint]) {
+  yield CatalogEntry(tpe, serviceId, name, urls.map(url => Endpoint(url.id, url.interface, url.regionId, url.url, serviceId)))
+final case class CatalogEntry(
+  `type`: String,
+  serviceId: String,
+  serviceName: String,
+  endpoints: List[Endpoint],
+) derives ConfiguredEncoder, ShowPretty {
   lazy val urisPerInterfacePerRegion: Map[Interface, Map[String, String]] = endpoints.groupBy(_.interface).view.mapValues { perInterface =>
     perInterface.groupMap(_.regionId)(_.url).view.mapValues(_.head).toMap
   }.toMap

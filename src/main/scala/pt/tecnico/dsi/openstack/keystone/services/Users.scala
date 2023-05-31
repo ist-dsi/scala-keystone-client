@@ -1,8 +1,8 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
 import cats.effect.Concurrent
-import cats.syntax.flatMap._
-import io.circe.syntax._
+import cats.syntax.flatMap.*
+import io.circe.syntax.*
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
@@ -44,33 +44,29 @@ final class Users[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
       ).filter { case (_, value) => value.isDefined }
     })
   
-  override def defaultResolveConflict(existing: User, create: User.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[User] = {
+  override def defaultResolveConflict(existing: User, create: User.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[User] =
     // TODO: should we always update because of the password? We could try to authenticate with the user to check if the password is valid
-    if (existing.defaultProjectId != create.defaultProjectId || existing.enabled != create.enabled) {
+    if existing.defaultProjectId != create.defaultProjectId || existing.enabled != create.enabled then
       val updated = User.Update(
         password = create.password,
-        defaultProjectId = if (create.defaultProjectId != existing.defaultProjectId) create.defaultProjectId else None,
+        defaultProjectId = if create.defaultProjectId != existing.defaultProjectId then create.defaultProjectId else None,
         enabled = Option(create.enabled).filter(_ != existing.enabled),
       )
-      update(existing.id, updated, extraHeaders:_*)
-    } else {
+      update(existing.id, updated, extraHeaders*)
+    else
       Concurrent[F].pure(existing)
-    }
-  }
   override def createOrUpdate(create: User.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
-    (resolveConflict: (User, User.Create) => F[User] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[User] = {
+    (resolveConflict: (User, User.Create) => F[User] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[User] =
     val conflicting = """.*?Duplicate entry found with name ([^ ]+) at domain ID ([^.]+)\.""".r
-    createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
+    createHandleConflictWithError[KeystoneError](create, uri, extraHeaders):
       case KeystoneError(conflicting(name, domainId), Conflict.code, _) =>
         apply(name, domainId).flatMap { existing =>
           getLogger.info(s"createOrUpdate: found unique ${this.name} (id: ${existing.id}) with the correct name, on domain with id $domainId.")
           resolveConflict(existing, create)
         }
-    }
-  }
   
   override def update(id: String, update: User.Update, extraHeaders: Header.ToRaw*): F[User] =
-    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+    super.patch(wrappedAt, update, uri / id, extraHeaders*)
   
   override protected def updateEnable(id: String, enabled: Boolean): F[User] =
     update(id, User.Update(enabled = Some(enabled)))

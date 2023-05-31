@@ -5,18 +5,18 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.Future
 import scala.util.Random
 import cats.effect.{IO, Resource}
-import cats.implicits._
+import cats.implicits.*
 import org.http4s.client.Client
-import org.http4s.client.blaze.BlazeClientBuilder
-import org.scalatest._
+import org.http4s.blaze.client.BlazeClientBuilder
+import org.scalatest.*
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import pt.tecnico.dsi.openstack.common.models.Identifiable
 import pt.tecnico.dsi.openstack.common.services.CrudService
 
-abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll {
-  val (_httpClient, finalizer) = BlazeClientBuilder[IO](global.compute)
+abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll:
+  val (_httpClient, finalizer) = BlazeClientBuilder[IO]
     .withResponseHeaderTimeout(5.seconds)
     .withCheckEndpointAuthentication(false)
     .resource.allocated.unsafeRunSync()
@@ -36,17 +36,17 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   /*import org.http4s.Headers
   import org.http4s.client.middleware.{Logger, ResponseLogger}
   import org.typelevel.ci.CIString
-  implicit val httpClient: Client[IO] = Logger.colored(
+  given Client[IO] = Logger.colored(
     logHeaders = true,
     logBody = true,
     redactHeadersWhen = (Headers.SensitiveHeaders ++ List(CIString("X-Auth-Token"), CIString("X-Subject-Token"))).contains,
     responseColor = ResponseLogger.defaultResponseColor[IO] _
   )(_httpClient)*/
-  implicit val httpClient: Client[IO] = _httpClient
+  given Client[IO] = _httpClient
   
   // This way we only authenticate to Openstack once, and make the logs smaller and easier to debug.
   val keystone: KeystoneClient[IO] = KeystoneClient.authenticateFromEnvironment {
-    import scala.sys.process._
+    import scala.sys.process.*
     val ignoreStdErr = ProcessLogger(_ => ())
     val openstackEnvVariableRegex = """(?<=\+\+ )(OS_[A-Z_]+)=([^\n]+)""".r.unanchored
     "docker logs dev-keystone".lazyLines(ignoreStdErr).collect {
@@ -61,11 +61,11 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
   
   def withRandomName[T](f: String => IO[T]): IO[T] = IO.delay(randomName()).flatMap(f)
   
-  def resourceCreator[R <: Identifiable, Create](service: CrudService[IO, R, Create, _])(create: String => Create): Resource[IO, R] =
+  def resourceCreator[R <: Identifiable, Create](service: CrudService[IO, R, Create, ?])(create: String => Create): Resource[IO, R] =
     Resource.make(withRandomName(name => service(create(name))))(model => service.delete(model.id))
   
-  implicit class RichIO[T](io: IO[T]) {
-    def idempotently(test: T => Assertion, repetitions: Int = 3): IO[Assertion] = {
+  extension [T](io: IO[T])
+    def idempotently(test: T => Assertion, repetitions: Int = 3): IO[Assertion] =
       require(repetitions >= 2, "To test for idempotency at least 2 repetitions must be made")
       io.flatMap { firstResult =>
         // If this fails we do not want to mask its exception with "Operation is not idempotent".
@@ -75,10 +75,10 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
           io
         } map { results =>
           // And now we want to catch the exception because if `test` fails here it means it is not idempotent.
-          try {
+          try
             results.foreach(test)
             succeed
-          } catch {
+          catch
             case e: TestFailedException =>
               val numberOfDigits = Math.floor(Math.log10(repetitions.toDouble)).toInt + 1
               val resultsString = (firstResult +: results).zipWithIndex
@@ -89,13 +89,7 @@ abstract class Utils extends AsyncWordSpec with Matchers with BeforeAndAfterAll 
                 s"""Operation is not idempotent. Results:
                    |$resultsString
                    |$message""".stripMargin))
-          }
         }
       }
-    }
-  }
   
-  import scala.language.implicitConversions
-  
-  implicit def io2Future(io: IO[Assertion]): Future[Assertion] = io.unsafeToFuture()
-}
+  given Conversion[IO[Assertion], Future[Assertion]] = _.unsafeToFuture()

@@ -1,20 +1,16 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
 import java.time.OffsetDateTime
-import cats.derived
+import cats.derived.derived
 import cats.derived.ShowPretty
-import io.circe.derivation.{deriveDecoder, deriveEncoder, renaming}
-import io.circe.syntax._
+import org.typelevel.cats.time.instances.offsetdatetime.given
+import io.circe.syntax.*
 import io.circe.{Decoder, Encoder}
-import io.chrisdavenport.cats.time.offsetdatetimeInstances
+import io.circe.derivation.{ConfiguredDecoder, ConfiguredEncoder}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 
-object User {
-  object Create {
-    implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Create] = derived.semiauto.showPretty
-  }
+object User:
   /**
    * Options to create a User
    *
@@ -35,12 +31,8 @@ object User {
     domainId: Option[String] = None,
     defaultProjectId: Option[String] = None,
     enabled: Boolean = true,
-  )
+  ) derives ConfiguredEncoder, ShowPretty
 
-  object Update {
-    implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Update] = derived.semiauto.showPretty
-  }
   /**
    * Options to update a User
    *
@@ -56,13 +48,11 @@ object User {
     password: Option[String] = None,
     defaultProjectId: Option[String] = None,
     enabled: Option[Boolean] = None,
-  ) {
-    lazy val needsUpdate: Boolean = {
+  ) derives ConfiguredEncoder, ShowPretty:
+    lazy val needsUpdate: Boolean =
       // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
       //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
       List(name, password, defaultProjectId, enabled).exists(_.isDefined)
-    }
-  }
   
   /*The decoder must handle the user returned from GET /v3/users/${id} and the user return from the /v3/auth/tokens
    The user from the tokens does not have a field named domain_id. Instead it has:
@@ -72,17 +62,12 @@ object User {
    }
    We simply ignore the domain name and read domain.id directly to domainId. The domain can be easily obtained from
    the User domain class*/
-  implicit val decoder: Decoder[User] = deriveDecoder(renaming.snakeCase).prepare { cursor =>
+  given Decoder[User] = ConfiguredDecoder.derived[User].prepare { cursor =>
     val domainIdCursor = cursor.downField("domain").downField("id")
-    domainIdCursor.as[String] match {
+    domainIdCursor.as[String] match
       case Right(domainId) => domainIdCursor.up.delete.withFocus(_.mapObject(_.add("domain_id", domainId.asJson)))
       case Left(_) => cursor
-    }
   }
-  implicit val encoder: Encoder[User] = deriveEncoder(renaming.snakeCase)
-  
-  implicit val show: ShowPretty[User] = derived.semiauto.showPretty
-}
 final case class User(
   id: String,
   name: String,
@@ -91,17 +76,17 @@ final case class User(
   passwordExpiresAt: Option[OffsetDateTime] = None,
   enabled: Boolean = true,
   links: List[Link] = List.empty,
-) extends Identifiable { self =>
-  def domain[F[_]](implicit client: KeystoneClient[F]): F[Domain] = client.domains(domainId)
+) extends Identifiable derives ConfiguredEncoder, ShowPretty { self =>
+  def domain[F[_]](using client: KeystoneClient[F]): F[Domain] = client.domains(domainId)
   
   /** The groups to which the user belongs */
-  def groups[F[_]](implicit client: KeystoneClient[F]): F[List[Group]] = client.users.listGroups(self.id)
+  def groups[F[_]](using client: KeystoneClient[F]): F[List[Group]] = client.users.listGroups(self.id)
   /** The projects to which the user belongs */
-  def projects[F[_]](implicit client: KeystoneClient[F]): F[List[Project]] = client.users.listProjects(self.id)
-  def changePassword[F[_]](originalPassword: String, password: String)(implicit client: KeystoneClient[F]): F[Unit] =
+  def projects[F[_]](using client: KeystoneClient[F]): F[List[Project]] = client.users.listProjects(self.id)
+  def changePassword[F[_]](originalPassword: String, password: String)(using client: KeystoneClient[F]): F[Unit] =
     client.users.changePassword(self.id, originalPassword, password)
   
-  def addToGroup[F[_]](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.addUser(id, self.id)
-  def removeFromGroup[F[_]](id: String)(implicit client: KeystoneClient[F]): F[Unit] = client.groups.removeUser(id, self.id)
-  def isInGroup[F[_]](id: String)(implicit client: KeystoneClient[F]): F[Boolean] = client.groups.isUserInGroup(id, self.id)
+  def addToGroup[F[_]](id: String)(using client: KeystoneClient[F]): F[Unit] = client.groups.addUser(id, self.id)
+  def removeFromGroup[F[_]](id: String)(using client: KeystoneClient[F]): F[Unit] = client.groups.removeUser(id, self.id)
+  def isInGroup[F[_]](id: String)(using client: KeystoneClient[F]): F[Boolean] = client.groups.isUserInGroup(id, self.id)
 }

@@ -3,7 +3,7 @@ package pt.tecnico.dsi.openstack.keystone.services
 import pt.tecnico.dsi.openstack.common.models.Identifiable
 import pt.tecnico.dsi.openstack.common.services.CrudService
 
-trait EnableDisableEndpoints[F[_], T <: Identifiable] { self: CrudService[F, T, _, _] =>
+trait EnableDisableEndpoints[F[_], T <: Identifiable] { self: CrudService[F, T, ?, ?] =>
   protected def updateEnable(id: String, enabled: Boolean) : F[T]
   
   def disable(id: String): F[T] = updateEnable(id, enabled = false)

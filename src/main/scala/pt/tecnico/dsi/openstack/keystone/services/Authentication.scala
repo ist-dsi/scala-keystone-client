@@ -10,7 +10,7 @@ import pt.tecnico.dsi.openstack.keystone.models.Scope.System
 import pt.tecnico.dsi.openstack.keystone.models.{CatalogEntry, Domain, Project, Session}
 
 final class Authentication[F[_]: Concurrent: Client](baseUri: Uri, session: Session) extends Service[F](baseUri, "auth", session.authToken) {
-  import dsl._
+  import dsl.*
   
   override val uri: Uri = baseUri / "auth"
   
@@ -18,7 +18,7 @@ final class Authentication[F[_]: Concurrent: Client](baseUri: Uri, session: Sess
   
   /** Validates and shows information for `token`, including its expiration date and authorization scope. */
   def validateAndShowInformation(token: String): F[Session] =
-    client.expect(GET(uri / "tokens", authToken, subjectToken(token)))(jsonDecoder(Session.decoder(authToken)))
+    client.expect(GET(uri / "tokens", authToken, subjectToken(token)))(jsonDecoder(using Session.decoder(authToken)))
   
   /** Validates `token`. Similar to `validateAndShowInformation` but no body is returned. */
   def validate(token: String): F[Boolean] = client.successful(HEAD(uri / "tokens", authToken, subjectToken(token)))

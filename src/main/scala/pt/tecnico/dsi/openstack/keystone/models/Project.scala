@@ -1,18 +1,13 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import cats.derived
+import cats.derived.derived
 import cats.derived.ShowPretty
-import io.circe.derivation.{deriveCodec, deriveEncoder, renaming}
-import io.circe.{Codec, Encoder}
+import io.circe.derivation.{ConfiguredEncoder, ConfiguredCodec}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
 
-object Project {
-  object Create {
-    implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Create] = derived.semiauto.showPretty
-  }
+object Project:
   /**
    * Options to create a Project
    *
@@ -45,16 +40,11 @@ object Project {
     enabled: Boolean = true,
     parentId: Option[String] = None,
     tags: List[String] = List.empty,
-  ) {
+  ) derives ConfiguredEncoder, ShowPretty:
     // Because a Project with isDomain = true **is** a Domain. Domains are implemented as Projects with isDomain = true. Great choice right there </sarcasm>
-    if (isDomain && domainId.isDefined) throw new IllegalArgumentException("For projects acting as a domain, the `domainId` must not be specified.")
-    if (isDomain && parentId.isDefined) throw new IllegalArgumentException("For projects acting as a domain, the `parentId` must not be specified.")
-  }
+    if isDomain && domainId.isDefined then throw new IllegalArgumentException("For projects acting as a domain, the `domainId` must not be specified.")
+    if isDomain && parentId.isDefined then throw new IllegalArgumentException("For projects acting as a domain, the `parentId` must not be specified.")
   
-  object Update {
-    implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Update] = derived.semiauto.showPretty
-  }
   /**
    * Options to update a Project
    *
@@ -68,17 +58,11 @@ object Project {
     description: Option[String] = None,
     enabled: Option[Boolean] = None,
     tags: Option[List[String]] = None,
-  ) {
-    lazy val needsUpdate: Boolean = {
+  )  derives ConfiguredEncoder, ShowPretty:
+    lazy val needsUpdate: Boolean =
       // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
       //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
       List(name, description, enabled, tags).exists(_.isDefined)
-    }
-  }
-  
-  implicit val codec: Codec[Project] = deriveCodec(renaming.snakeCase)
-  implicit val show: ShowPretty[Project] = derived.semiauto.showPretty
-}
 /**
  * @define scope project
  */
@@ -92,7 +76,7 @@ final case class Project(
   parentId: String,
   tags: List[String],
   links: List[Link] = List.empty,
-) extends Identifiable with RoleAssigner {
-  def domain[F[_]](implicit client: KeystoneClient[F]): F[Domain] = client.domains(domainId)
-  override def roleAssignment[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = client.roles.on(this)
+) extends Identifiable with RoleAssigner derives ConfiguredCodec, ShowPretty {
+  def domain[F[_]](using client: KeystoneClient[F]): F[Domain] = client.domains(domainId)
+  override def roleAssignment[F[_]](using client: KeystoneClient[F]): RoleAssignment[F] = client.roles.on(this)
 }

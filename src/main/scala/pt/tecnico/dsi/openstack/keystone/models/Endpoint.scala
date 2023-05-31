@@ -1,16 +1,11 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import cats.derived
+import cats.derived.derived
 import cats.derived.ShowPretty
-import io.circe.{Codec, Encoder}
-import io.circe.derivation.{deriveCodec, deriveEncoder, renaming}
+import io.circe.derivation.{ConfiguredEncoder, ConfiguredCodec}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
-object Endpoint {
-  object Create {
-    implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Create] = derived.semiauto.showPretty
-  }
+object Endpoint:
   /**
    * Options to create an Endpoint
    *
@@ -29,12 +24,8 @@ object Endpoint {
     serviceId: String,
     regionId: String,
     enabled: Boolean = true,
-  )
+  ) derives ConfiguredEncoder, ShowPretty
   
-  object Update {
-    implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Update] = derived.semiauto.showPretty
-  }
   /**
    * Options to update an Endpoint
    *
@@ -53,17 +44,11 @@ object Endpoint {
     serviceId: Option[String] = None,
     regionId: Option[String] = None,
     enabled: Option[Boolean] = None,
-  ) {
-    lazy val needsUpdate: Boolean = {
+  ) derives ConfiguredEncoder, ShowPretty:
+    lazy val needsUpdate: Boolean =
       // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
       //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
       List(interface, url, serviceId, regionId, enabled).exists(_.isDefined)
-    }
-  }
-  
-  implicit val codec: Codec[Endpoint] = deriveCodec(renaming.snakeCase)
-  implicit val show: ShowPretty[Endpoint] = derived.semiauto.showPretty
-}
 final case class Endpoint(
   id: String,
   interface: Interface,
@@ -72,4 +57,4 @@ final case class Endpoint(
   serviceId: String,
   enabled: Boolean = true,
   links: List[Link] = List.empty,
-) extends Identifiable
+) extends Identifiable derives ConfiguredCodec, ShowPretty

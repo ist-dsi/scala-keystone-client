@@ -6,14 +6,14 @@ import pt.tecnico.dsi.openstack.keystone.models.Project
 import pt.tecnico.dsi.openstack.keystone.services.{Projects, RoleAssignment}
 
 class ProjectSpec extends CrudSpec[Project, Project.Create, Project.Update]("project")
-  with RoleAssignmentSpec[Project] with EnableDisableSpec[Project] {
+  with RoleAssignmentSpec[Project] with EnableDisableSpec[Project]:
   override def service: Projects[IO] = keystone.projects
   def roleService(model: Project): RoleAssignment[IO] = service.on(model)
   
   override def getEnabled(model: Project): Boolean = model.enabled
 
   override def createStub(name: String): Project.Create = Project.Create(name, "a description", tags = List("a", "b", "c"))
-  override def compareCreate(create: Project.Create, model: Project): Assertion = {
+  override def compareCreate(create: Project.Create, model: Project): Assertion =
     model.name shouldBe create.name
     model.description shouldBe create.description
     model.isDomain shouldBe create.isDomain
@@ -23,13 +23,10 @@ class ProjectSpec extends CrudSpec[Project, Project.Create, Project.Update]("pro
     model.domainId shouldBe keystone.session.scopedDomainId()
     model.parentId shouldBe keystone.session.scopedDomainId()
     model.tags shouldBe create.tags
-  }
 
   override def updateStub: Project.Update = Project.Update(Some(randomName()), Some(randomName()), Some(false), Some(List.empty))
-  override def compareUpdate(update: Project.Update, model: Project): Assertion = {
+  override def compareUpdate(update: Project.Update, model: Project): Assertion =
     model.name shouldBe update.name.value
     model.description shouldBe update.description.value
     model.enabled shouldBe update.enabled.value
     model.tags shouldBe update.tags.value
-  }
-}

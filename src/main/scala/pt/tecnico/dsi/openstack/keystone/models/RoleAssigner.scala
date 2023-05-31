@@ -8,7 +8,7 @@ import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
  */
 trait RoleAssigner {
   /** The role assignment for $scope */
-  def roleAssignment[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F]
+  def roleAssignment[F[_]](using client: KeystoneClient[F]): RoleAssignment[F]
   
   /**
    * Lists the role assignments for the user with `id` on $scope.
@@ -54,10 +54,9 @@ trait RoleAssigner {
    *   $scope assign "role-id" to user
    * }}}
    */
-  def assign[F[_]: KeystoneClient](roleId: String): RoleAssignment[F]#Assign = {
+  def assign[F[_]: KeystoneClient](roleId: String): RoleAssignment[F]#Assign =
     val rs = roleAssignment
     new rs.Assign(roleId)
-  }
   /**
    * Allows assigning the `role` to user/group on $scope.
    * @example
@@ -77,10 +76,9 @@ trait RoleAssigner {
    *   $scope unassign "role-id" to user
    * }}}
    */
-  def unassign[F[_]: KeystoneClient](roleId: String): RoleAssignment[F]#Unassign = {
+  def unassign[F[_]: KeystoneClient](roleId: String): RoleAssignment[F]#Unassign =
     val rs = roleAssignment
     new rs.Unassign(roleId)
-  }
   /**
    * Allows unassigning the `role` from user/group on $scope.
    * @example
@@ -100,10 +98,9 @@ trait RoleAssigner {
    *   $scope is "role-id" assignedTo user
    * }}}
    */
-  def is[F[_]: KeystoneClient](roleId: String): RoleAssignment[F]#Is = {
+  def is[F[_]: KeystoneClient](roleId: String): RoleAssignment[F]#Is =
     val rs = roleAssignment
     new rs.Is(roleId)
-  }
   /**
    * Allows checking if `role` is assigned to user/group on $scope.
    * @example

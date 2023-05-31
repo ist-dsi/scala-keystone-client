@@ -1,16 +1,11 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import cats.derived
+import cats.derived.derived
 import cats.derived.ShowPretty
-import io.circe.derivation.{deriveCodec, deriveEncoder, renaming}
-import io.circe.{Codec, Encoder}
+import io.circe.derivation.{ConfiguredCodec, ConfiguredEncoder}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
-object Region {
-  object Create {
-    implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Create] = derived.semiauto.showPretty
-  }
+object Region:
   /**
    * Options to create a Region.
    * @param id The ID for the region.
@@ -21,12 +16,8 @@ object Region {
     id: String,
     description: String = "",
     parentRegionId: Option[String] = None,
-  )
+  ) derives ConfiguredEncoder, ShowPretty
   
-  object Update {
-    implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Update] = derived.semiauto.showPretty
-  }
   /**
    * Options to update a Region.
    * @param description The new region description.
@@ -35,21 +26,15 @@ object Region {
   case class Update(
     description: Option[String] = None,
     parentRegionId: Option[String] = None,
-  ) {
-    lazy val needsUpdate: Boolean = {
+  ) derives ConfiguredEncoder, ShowPretty:
+    lazy val needsUpdate: Boolean =
       // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
       //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
       List(description, parentRegionId).exists(_.isDefined)
-    }
-  }
-  
-  implicit val codec: Codec[Region] = deriveCodec(renaming.snakeCase)
-  implicit val show: ShowPretty[Region] = derived.semiauto.showPretty
-}
 final case class Region(
   id: String,
   description: String,
   parentRegionId: Option[String],
   links: List[Link] = List.empty,
-) extends Identifiable
+) extends Identifiable derives ConfiguredCodec, ShowPretty
 

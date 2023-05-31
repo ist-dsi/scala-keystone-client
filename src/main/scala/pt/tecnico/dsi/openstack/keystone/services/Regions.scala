@@ -1,7 +1,7 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
 import cats.effect.Concurrent
-import cats.syntax.flatMap._
+import cats.syntax.flatMap.*
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
@@ -22,26 +22,23 @@ final class Regions[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     */
   def list(parentRegionId: Option[String] = None): F[List[Region]] = list(Query("parent_region_id" -> parentRegionId))
   
-  override def defaultResolveConflict(existing: Region, create: Region.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Region] = {
+  override def defaultResolveConflict(existing: Region, create: Region.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Region] =
     val updated = Region.Update(
       Option(create.description).filter(_ != existing.description),
-      if (create.parentRegionId != existing.parentRegionId) create.parentRegionId else None,
+      if create.parentRegionId != existing.parentRegionId then create.parentRegionId else None,
     )
-    if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
+    if updated.needsUpdate then update(existing.id, updated, extraHeaders*)
     else Concurrent[F].pure(existing)
-  }
   override def createOrUpdate(create: Region.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
-    (resolveConflict: (Region, Region.Create) => F[Region] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Region] = {
+    (resolveConflict: (Region, Region.Create) => F[Region] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Region] =
     val conflicting = """.*?Duplicate ID, ([^.]+)\..*?""".r
-    createHandleConflictWithError[KeystoneError](create, uri, extraHeaders) {
+    createHandleConflictWithError[KeystoneError](create, uri, extraHeaders):
       case KeystoneError(conflicting(id), Conflict.code, _) =>
         apply(id).flatMap { existing =>
           getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name.")
           resolveConflict(existing, create)
         }
-    }
-  }
   
   override def update(id: String, update: Region.Update, extraHeaders: Header.ToRaw*): F[Region] =
-    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+    super.patch(wrappedAt, update, uri / id, extraHeaders*)
 }

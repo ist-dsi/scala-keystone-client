@@ -1,7 +1,7 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
 import cats.effect.Concurrent
-import cats.syntax.flatMap._
+import cats.syntax.flatMap.*
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
@@ -24,30 +24,27 @@ final class Services[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     */
   def list(name: Option[String] = None, `type`: Option[String] = None): F[List[Service]] = list(Query("name" -> name, "type" -> `type`))
   
-  override def defaultResolveConflict(existing: Service, create: Service.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Service] = {
+  override def defaultResolveConflict(existing: Service, create: Service.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Service] =
     val updated = Service.Update(
-      description = if (create.description != existing.description) create.description else None,
+      description = if create.description != existing.description then create.description else None,
       enabled = Option(create.enabled).filter(_ != existing.enabled),
     )
-    if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
+    if updated.needsUpdate then update(existing.id, updated, extraHeaders*)
     else Concurrent[F].pure(existing)
-  }
   override def createOrUpdate(create: Service.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
-    (resolveConflict: (Service, Service.Create) => F[Service] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Service] = {
+    (resolveConflict: (Service, Service.Create) => F[Service] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Service] =
     // Openstack always creates a new service now matter what.
-    list(Some(create.name), Some(create.`type`)).flatMap {
-      case Nil => this.create(create, extraHeaders:_*)
+    list(Some(create.name), Some(create.`type`)).flatMap:
+      case Nil => this.create(create, extraHeaders*)
       case List(existing) =>
         getLogger.info(s"createOrUpdate: found unique $name (id: ${existing.id}) with the correct name and type")
         resolveConflict(existing, create)
       case _ =>
         val message = s"Cannot create a service idempotently because more than one service with name: ${create.name} and type: ${create.`type`} exists."
         Concurrent[F].raiseError(KeystoneError(message, Conflict.code, Conflict.reason))
-    }
-  }
   
   override def update(id: String, update: Service.Update, extraHeaders: Header.ToRaw*): F[Service] =
-    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+    super.patch(wrappedAt, update, uri / id, extraHeaders*)
   
   override protected def updateEnable(id: String, enabled: Boolean): F[Service] =
     update(id, Service.Update(enabled = Some(enabled)))

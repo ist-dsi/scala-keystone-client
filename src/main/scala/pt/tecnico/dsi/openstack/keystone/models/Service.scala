@@ -1,16 +1,11 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import cats.derived
+import cats.derived.derived
 import cats.derived.ShowPretty
-import io.circe.derivation.{deriveCodec, deriveEncoder, renaming}
-import io.circe.{Codec, Encoder}
+import io.circe.derivation.{ConfiguredEncoder, ConfiguredCodec}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 
-object Service {
-  object Create {
-    implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Create] = derived.semiauto.showPretty
-  }
+object Service:
   /**
    * Options to create a Service.
    *
@@ -24,12 +19,8 @@ object Service {
     `type`: String,
     description: Option[String] = None,
     enabled: Boolean = true,
-  )
-  
-  object Update {
-    implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Update] = derived.semiauto.showPretty
-  }
+  ) derives ConfiguredEncoder, ShowPretty
+
   /**
    * Options to update a Service.
    *
@@ -43,17 +34,11 @@ object Service {
     `type`: Option[String] = None,
     description: Option[String] = None,
     enabled: Option[Boolean] = None,
-  ) {
-    lazy val needsUpdate: Boolean = {
+  ) derives ConfiguredEncoder, ShowPretty:
+    lazy val needsUpdate: Boolean =
       // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
       //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
       List(name, `type`, description, enabled).exists(_.isDefined)
-    }
-  }
-  
-  implicit val codec: Codec[Service] = deriveCodec(renaming.snakeCase)
-  implicit val show: ShowPretty[Service] = derived.semiauto.showPretty
-}
 final case class Service(
   id: String,
   name: String,
@@ -61,4 +46,4 @@ final case class Service(
   description: Option[String],
   enabled: Boolean,
   links: List[Link] = List.empty,
-) extends Identifiable
+) extends Identifiable derives ConfiguredCodec, ShowPretty

@@ -1,9 +1,8 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
 import io.circe.Decoder
-import io.circe.derivation.{deriveDecoder,renaming}
+import io.circe.derivation.ConfiguredDecoder
 
-object KeystoneError {
-  implicit val decoder: Decoder[KeystoneError] = deriveDecoder(renaming.snakeCase).at("error")
-}
+object KeystoneError:
+  given Decoder[KeystoneError] = ConfiguredDecoder.derived[KeystoneError].at("error")
 case class KeystoneError(message: String, code: Int, title: String) extends Exception(message)

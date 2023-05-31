@@ -1,20 +1,22 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
 import java.time.OffsetDateTime
-import cats.{Show, derived}
+import cats.Show
+import cats.derived.derived
 import cats.derived.ShowPretty
 import cats.effect.Concurrent
 import io.circe.{Decoder, HCursor}
 import org.http4s.client.Client
 import org.http4s.{Header, Uri}
-import io.chrisdavenport.cats.time.offsetdatetimeInstances
+import org.typelevel.cats.time.instances.offsetdatetime.given
 import pt.tecnico.dsi.openstack.common.models.AuthToken
 
-object Session {
+object Session:
   // Not implicit because otherwise the compiler interprets it as an implicit conversion
-  def decoder(authToken: AuthToken): Decoder[Session] = { cursor: HCursor =>
+
+  def decoder(authToken: AuthToken): Decoder[Session] = (cursor: HCursor) => {
     val tokenCursor = cursor.downField("token")
-    for {
+    for
       user <- tokenCursor.get[User]("user")
       expiresAt <- tokenCursor.get[OffsetDateTime]("expires_at")
       issuedAt <- tokenCursor.get[OffsetDateTime]("issued_at")
@@ -24,14 +26,10 @@ object Session {
       // The sole reason for this handcrafted decoder, why is the scope directly at the root?
       // To make things more interesting obviously </sarcasm>
       scope <- tokenCursor.as[Scope]
-    } yield Session(user, expiresAt, issuedAt, auditIds, roles, catalog, scope, authToken)
+    yield Session(user, expiresAt, issuedAt, auditIds, roles, catalog, scope, authToken)
   }
-  
-  implicit val show: ShowPretty[Session] = {
-    implicit val showHeader: Show[AuthToken] = Show.show(_ => s"${implicitly[Header[AuthToken, _]].name}: <REDACTED>")
-    derived.semiauto.showPretty
-  }
-}
+
+  given Show[AuthToken] = Show.show(_ => s"${summon[Header[AuthToken, ?]].name}: <REDACTED>")
 final case class Session(
   user: User,
   expiresAt: OffsetDateTime,
@@ -41,18 +39,17 @@ final case class Session(
   catalog: List[CatalogEntry] = List.empty,
   scope: Scope,
   authToken: AuthToken,
-) {
+) derives ShowPretty:
   /** @return the project id if the session is Project scoped. */
-  def scopedProjectId: Option[String] = scope match {
+  def scopedProjectId: Option[String] = scope match
     case Scope.Project(id, _, _) => Some(id)
     case _ => None
-  }
   
   /** @return the domain id if the session is Domain scoped, otherwise the `defaultDomain`. */
-  def scopedDomainId(defaultDomain: String = "default"): String = {
+  def scopedDomainId(defaultDomain: String = "default"): String =
     // If the domain ID is not provided in the request, the Identity service will attempt to pull the domain ID
     // from the token used in the request. Note that this requires the use of a domain-scoped token.
-    scope match {
+    scope match
       case Scope.Domain(id, _) => id
       case _ =>
         // https://github.com/openstack/keystone/blob/04316beecc0d20290fb36e7791eb3050953c1011/keystone/server/flask/common.py#L965
@@ -60,8 +57,6 @@ final case class Session(
         // According to the link above this logic will be removed. So we shouldn't include it, however if we do not
         // creating Users, Groups and Projects is no longer an idempotent operation :(
         defaultDomain
-    }
-  }
   
   /**
    * Builds a Openstack service client. Returns an Either because the catalog might not have the request service type,
@@ -75,7 +70,7 @@ final case class Session(
    * @param interface the interface for which to get the service url from the catalog
    */
   def clientBuilder[F[_]: Concurrent: Client](builder: ClientBuilder, region: String,
-    interface: Interface = Interface.Public): Either[String, builder.OpenstackClient[F]] = for {
+    interface: Interface = Interface.Public): Either[String, builder.OpenstackClient[F]] = for
     entry <- catalog.find(_.`type` == builder.`type`).toRight(s"""Could not find "${builder.`type`}" service in the catalog""")
     publicUrls <- entry.urlsOf(interface).toRight(s"""Service "${builder.`type`}" does not have $interface endpoints""")
     regionUrl <- publicUrls.get(region).toRight(s"""Service "${builder.`type`}" does not have endpoints for region $region""")
@@ -83,14 +78,12 @@ final case class Session(
     // The clients are expecting a clean uri, since they can be used for administrative purposes
     strippedUrlString = scopedProjectId.map(projectId => regionUrl.stripSuffix(s"/$projectId")).getOrElse(regionUrl)
     uri <- Uri.fromString(strippedUrlString).left.map(_.message)
-  } yield builder(uri, this)
-}
+  yield builder(uri, this)
 
-trait ClientBuilder {
+trait ClientBuilder:
   /** The concrete Openstack client type this `ClientBuilder` will create. */
   type OpenstackClient[F[_]]
   /** The catalog entry `type` for the `OpenstackClient`. Eg: for the neutron client it would be "network" */
   val `type`: String
   
   def apply[F[_]: Concurrent: Client](baseUri: Uri, session: Session): OpenstackClient[F]
-}

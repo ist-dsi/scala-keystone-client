@@ -1,18 +1,13 @@
 package pt.tecnico.dsi.openstack.keystone.models
 
-import cats.derived
+import cats.derived.derived
 import cats.derived.ShowPretty
-import io.circe.derivation.{deriveCodec, deriveEncoder, renaming}
-import io.circe.{Codec, Encoder}
+import io.circe.derivation.{ConfiguredCodec, ConfiguredDecoder, ConfiguredEncoder}
 import pt.tecnico.dsi.openstack.common.models.{Identifiable, Link}
 import pt.tecnico.dsi.openstack.keystone.KeystoneClient
 import pt.tecnico.dsi.openstack.keystone.services.RoleAssignment
 
-object Domain {
-  object Create {
-    implicit val encoder: Encoder[Create] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Create] = derived.semiauto.showPretty
-  }
+object Domain:
   /**
    * Options to create a Domain.
    *
@@ -29,12 +24,8 @@ object Domain {
     description: String = "",
     enabled: Boolean = true,
     explicitDomainId: Option[String] = None,
-  )
+  ) derives ConfiguredEncoder, ShowPretty
   
-  object Update {
-    implicit val encoder: Encoder[Update] = deriveEncoder(renaming.snakeCase)
-    implicit val show: ShowPretty[Update] = derived.semiauto.showPretty
-  }
   /**
    * Options to update a Domain.
    *
@@ -48,17 +39,11 @@ object Domain {
     name: Option[String] = None,
     description: Option[String] = None,
     enabled: Option[Boolean] = None,
-  ) {
-    lazy val needsUpdate: Boolean = {
+  ) derives ConfiguredEncoder, ShowPretty:
+    lazy val needsUpdate: Boolean =
       // We could implement this with the next line, but that implementation is less reliable if the fields of this class change
       //  productIterator.asInstanceOf[Iterator[Option[Any]]].exists(_.isDefined)
       List(name, description, enabled).exists(_.isDefined)
-    }
-  }
-  
-  implicit val codec: Codec[Domain] = deriveCodec(renaming.snakeCase)
-  implicit val show: ShowPretty[Domain] = derived.semiauto.showPretty
-}
 /**
  * @define scope domain
  */
@@ -68,6 +53,5 @@ final case class Domain(
   enabled: Boolean,
   description: String,
   links: List[Link] = List.empty,
-) extends Identifiable with RoleAssigner {
-  def roleAssignment[F[_]](implicit client: KeystoneClient[F]): RoleAssignment[F] = client.roles.on(this)
-}
+) extends Identifiable with RoleAssigner derives ConfiguredCodec, ShowPretty:
+  def roleAssignment[F[_]](using client: KeystoneClient[F]): RoleAssignment[F] = client.roles.on(this)

@@ -1,8 +1,8 @@
 package pt.tecnico.dsi.openstack.keystone.services
 
 import cats.effect.Concurrent
-import cats.syntax.flatMap._
-import cats.syntax.functor._
+import cats.syntax.flatMap.*
+import cats.syntax.functor.*
 import org.http4s.Status.Conflict
 import org.http4s.client.Client
 import org.http4s.{Header, Query, Uri}
@@ -39,9 +39,9 @@ final class Projects[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
       ).filter { case (_, value) => value.isDefined }
     })
   
-  override def defaultResolveConflict(existing: Project, create: Project.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Project] = {
+  override def defaultResolveConflict(existing: Project, create: Project.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Project] =
     val newTags =
-      if (keepExistingElements) create.tags ++ existing.tags.diff(create.tags)
+      if keepExistingElements then create.tags ++ existing.tags.diff(create.tags)
       else create.tags
     
     val updated = Project.Update(
@@ -49,32 +49,28 @@ final class Projects[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
       enabled = Option(create.enabled).filter(_ != existing.enabled),
       tags = Option(newTags).filter(_ != existing.tags),
     )
-    if (updated.needsUpdate) update(existing.id, updated, extraHeaders:_*)
+    if updated.needsUpdate then update(existing.id, updated, extraHeaders*)
     else Concurrent[F].pure(existing)
-  }
   override def createOrUpdate(create: Project.Create, keepExistingElements: Boolean = true, extraHeaders: Seq[Header.ToRaw] = Seq.empty)
-    (resolveConflict: (Project, Project.Create) => F[Project] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Project] = {
-    createHandleConflict(create, uri, extraHeaders) {
-      if (create.isDomain) {
+    (resolveConflict: (Project, Project.Create) => F[Project] = defaultResolveConflict(_, _, keepExistingElements, extraHeaders)): F[Project] =
+    createHandleConflict(create, uri, extraHeaders):
+      if create.isDomain then
         // We got a Conflict while creating a project with isDomain = true, so a project named create.name with id_domain = true must exist.
-        list("name" -> create.name, "is_domain" -> "true", "limit" -> "2").flatMap {
+        list("name" -> create.name, "is_domain" -> "true", "limit" -> "2").flatMap:
           case List(existing) => resolveConflict(existing, create)
           case _ =>
             // TODO: I think the initial post will have already thrown a similar response
             val message = s"Cannot create a Project idempotently because more than one exists with name: ${create.name} and isDomain = true."
             Concurrent[F].raiseError(KeystoneError(message, Conflict.code, Conflict.reason))
-        }
-      } else {
-        val computeDomainId: F[String] = create.domainId match {
+      else
+        val computeDomainId: F[String] = create.domainId match
           case Some(domainId) => Concurrent[F].pure(domainId)
           // For regular projects if domain_id is not specified, but parent_id is specified, then the domain ID of the parent will be used.
           // If neither domain_id or parent_id is specified, the Identity service implementation will default to the domain to which the client’s token is scoped.
-          case None => create.parentId match {
+          case None => create.parentId match
             // If the parent project doesn't exist the initial POST (performed by the postHandleConflict) will already have thrown an error
             case Some(parentId) => apply(parentId).map(project => project.domainId)
             case None => Concurrent[F].pure(session.scopedDomainId())
-          }
-        }
         computeDomainId.flatMap { domainId =>
           // We got a Conflict so we must be able to find the existing Project
           apply(create.name, domainId).flatMap { existing =>
@@ -82,12 +78,9 @@ final class Projects[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
             resolveConflict(existing, create)
           }
         }
-      }
-    }
-  }
   
   override def update(id: String, update: Project.Update, extraHeaders: Header.ToRaw*): F[Project] =
-    super.patch(wrappedAt, update, uri / id, extraHeaders:_*)
+    super.patch(wrappedAt, update, uri / id, extraHeaders*)
   
   override protected def updateEnable(id: String, enabled: Boolean): F[Project] =
     update(id, Project.Update(enabled = Some(enabled)))
