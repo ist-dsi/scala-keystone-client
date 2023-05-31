@@ -14,6 +14,7 @@ scalacOptions ++= Seq(
   "-new-syntax",                    // Require `then` and `do` in control expressions.
   "-feature",                       // Emit warning and location for usages of features that should be imported explicitly.
   "-language:future",               // better-monadic-for
+  "-language:implicitConversions",  // Allow implicit conversions
   "-deprecation",                   // Emit warning and location for usages of deprecated APIs.
   "-Wunused:all",                   // Enable or disable specific `unused` warnings
   "-Werror",                        // Fail the compilation if there are any warnings.
