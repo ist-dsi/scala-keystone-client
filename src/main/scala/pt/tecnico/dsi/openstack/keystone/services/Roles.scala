@@ -23,7 +23,10 @@ final class Roles[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     * @return a stream of roles filtered by the various parameters.
     */
   def list(name: Option[String] = None, domainId: Option[String] = None): F[List[Role]] =
-    list(Query("name" -> name, "domain_id" -> domainId))
+    list(Query(
+      "name" -> name,
+      "domain_id" -> domainId,
+    ).filter((_, value) => value.isDefined))
   
   /**
    * Get detailed information about the role specified by name and without a domain.

@@ -24,7 +24,7 @@ final class Domains[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     * @return a stream of domains filtered by the various parameters.
     */
   def list(name: Option[String] = None, enabled: Option[Boolean]): F[List[Domain]] =
-    list(Query("name" -> name, "enabled" -> enabled.map(_.toString)))
+    list(Query("name" -> name, "enabled" -> enabled.map(_.toString)).filter((_, value) => value.isDefined))
   
   /**
    * Get detailed information about the domain specified by name.

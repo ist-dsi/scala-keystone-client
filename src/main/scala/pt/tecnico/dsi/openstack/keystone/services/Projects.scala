@@ -36,7 +36,7 @@ final class Projects[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
         "enabled" -> enabled.map(_.toString),
         "is_domain" -> isDomain.map(_.toString),
         "parent_id" -> parentId,
-      ).filter { case (_, value) => value.isDefined }
+      ).filter((_, value) => value.isDefined)
     })
   
   override def defaultResolveConflict(existing: Project, create: Project.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Project] =

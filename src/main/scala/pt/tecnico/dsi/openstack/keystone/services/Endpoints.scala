@@ -23,7 +23,7 @@ final class Endpoints[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
       "interface" -> interface.map(_.toString.toLowerCase),
       "service_id" -> serviceId,
       "region_id" -> regionId,
-    ))
+    ).filter((_, value) => value.isDefined))
   
   override def defaultResolveConflict(existing: Endpoint, create: Endpoint.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Endpoint] =
     val updated = Endpoint.Update(

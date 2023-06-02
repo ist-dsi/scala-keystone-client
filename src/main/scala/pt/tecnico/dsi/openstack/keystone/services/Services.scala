@@ -22,7 +22,10 @@ final class Services[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     * @param `type` Filters the response by a service type.
     * @return a stream of services filtered by the various parameters.
     */
-  def list(name: Option[String] = None, `type`: Option[String] = None): F[List[Service]] = list(Query("name" -> name, "type" -> `type`))
+  def list(name: Option[String] = None, `type`: Option[String] = None): F[List[Service]] = list(Query(
+    "name" -> name,
+    "type" -> `type`,
+  ).filter((_, value) => value.isDefined))
   
   override def defaultResolveConflict(existing: Service, create: Service.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Service] =
     val updated = Service.Update(

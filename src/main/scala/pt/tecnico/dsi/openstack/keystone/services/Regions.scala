@@ -20,7 +20,9 @@ final class Regions[F[_]: Concurrent: Client](baseUri: Uri, session: Session)
     * @param parentRegionId filters the response by a parent region, by ID.
     * @return a stream of regions filtered by the various parameters.
     */
-  def list(parentRegionId: Option[String] = None): F[List[Region]] = list(Query("parent_region_id" -> parentRegionId))
+  def list(parentRegionId: Option[String] = None): F[List[Region]] = list(Query(
+    "parent_region_id" -> parentRegionId,
+  ).filter((_, value) => value.isDefined))
   
   override def defaultResolveConflict(existing: Region, create: Region.Create, keepExistingElements: Boolean, extraHeaders: Seq[Header.ToRaw]): F[Region] =
     val updated = Region.Update(
